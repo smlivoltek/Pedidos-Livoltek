@@ -34,9 +34,9 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             text-align: center;
         }
-        .card.enviado { border-left: 4px solid #27ae60; }
+        .card.incompleto { border-left: 4px solid #e74c3c; }
         .card.analise { border-left: 4px solid #f39c12; }
-        .card.aguardando { border-left: 4px solid #e74c3c; }
+        .card.faturamento { border-left: 4px solid #27ae60; }
         .card h3 { font-size: 32px; font-weight: bold; margin-bottom: 5px; }
         .card p { color: #7f8c8d; font-size: 13px; }
         .filters {
@@ -87,9 +87,9 @@
             font-size: 13px;
         }
         tr:hover { background: #f9fafb; }
-        .status-enviado {
-            background: #d5f4e6;
-            color: #27ae60;
+        .status-incompleto {
+            background: #fadbd8;
+            color: #e74c3c;
             padding: 4px 10px;
             border-radius: 4px;
             font-weight: 500;
@@ -103,9 +103,9 @@
             font-weight: 500;
             display: inline-block;
         }
-        .status-aguardando {
-            background: #fadbd8;
-            color: #e74c3c;
+        .status-faturamento {
+            background: #d5f4e6;
+            color: #27ae60;
             padding: 4px 10px;
             border-radius: 4px;
             font-weight: 500;
@@ -132,17 +132,17 @@
         </div>
 
         <div class="cards-grid">
-            <div class="card enviado">
-                <h3 id="count-enviado">0</h3>
-                <p>Enviado para Faturamento</p>
+            <div class="card incompleto">
+                <h3 id="count-incompleto">0</h3>
+                <p>Pedido Incompleto</p>
             </div>
             <div class="card analise">
                 <h3 id="count-analise">0</h3>
-                <p>Pendente de Envio</p>
+                <p>Em Análise (24h)</p>
             </div>
-            <div class="card aguardando">
-                <h3 id="count-aguardando">0</h3>
-                <p>Em Aprovação</p>
+            <div class="card faturamento">
+                <h3 id="count-faturamento">0</h3>
+                <p>Envio Faturamento</p>
             </div>
         </div>
 
@@ -157,9 +157,9 @@
                 <label for="filter-status">Status:</label>
                 <select id="filter-status">
                     <option value="">Todos</option>
-                    <option value="EM APROVAÇÃO">Em Aprovação</option>
-                    <option value="PENDENTE DE ENVIO PARA FATURAMENTO">Pendente de Envio</option>
-                    <option value="ENVIADO PARA FATURAMENTO">Enviado para Faturamento</option>
+                    <option value="PEDIDO INCOMPLETO">Pedido Incompleto</option>
+                    <option value="EM ANÁLISE PELO SM">Em Análise SM</option>
+                    <option value="ENVIO PARA FATURAMENTO">Envio Faturamento</option>
                 </select>
             </div>
         </div>
@@ -182,7 +182,6 @@
             const headers = lines[0].split(',').map(h => h.trim());
             const data = [];
             
-            // Mapeamento de colunas: CSV completo → 8 colunas do dashboard
             const columnMap = {
                 'KAM': 'KAM',
                 'PO (Relacionado)': 'Nº DO PEDIDO',
@@ -191,60 +190,101 @@
                 'Data Pedido Completo': 'DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)',
                 'Data Aprovação no Totvs': 'DATA APROVAÇÃO NO TOTVS',
                 'Data Envio Faturamento': 'DATA ENVIO PARA O PD',
-                'Quais Pendências?': 'PENDÊNCIAS (MOTIVO)'
+                'Quais Pendências?': 'PENDÊNCIAS'
             };
             
             for (let i = 1; i < lines.length; i++) {
                 const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
                 const row = {};
                 
-                // Ler TODAS as colunas do CSV
                 headers.forEach((h, idx) => {
                     const mappedKey = columnMap[h] || h;
                     row[mappedKey] = values[idx] || '';
                 });
                 
-                // Manter apenas se tem pedido e KAM
                 if (row['Nº DO PEDIDO'] && row['KAM']) data.push(row);
             }
             return data;
         }
 
+        function compareDates(data1, data2) {
+            // Converte DD/MM/YYYY para date
+            const parseDate = (dateStr) => {
+                if (!dateStr || dateStr.trim() === '') return null;
+                const [d, m, y] = dateStr.split('/');
+                return new Date(y, m - 1, d);
+            };
+            
+            const d1 = parseDate(data1);
+            const d2 = parseDate(data2);
+            
+            if (!d1 || !d2) return null;
+            
+            const diff = Math.floor((d2 - d1) / (1000 * 60 * 60 * 24));
+            return diff;
+        }
+
         function calculateStatus(row) {
             const dataRecebimento = row['DATA RECEBIMENTO SM'] || '';
             const dataPedidoCompleto = row['DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)'] || '';
-            const dataAprovacao = row['DATA APROVAÇÃO NO TOTVS'] || '';
             const dataEnvio = row['DATA ENVIO PARA O PD'] || '';
+            
+            // Regra 1: Recebimento SM preenchido + Pedido Completo vazio = PEDIDO INCOMPLETO
+            if (dataRecebimento && !dataPedidoCompleto) {
+                return 'PEDIDO INCOMPLETO';
+            }
+            
+            // Regra 2: Recebimento SM + Pedido Completo preenchidos + Envio PD vazio = EM ANÁLISE PELO SM
+            if (dataRecebimento && dataPedidoCompleto && !dataEnvio) {
+                return 'EM ANÁLISE PELO SM';
+            }
+            
+            // Regra 3: Todos preenchidos = ENVIO PARA FATURAMENTO
+            if (dataRecebimento && dataPedidoCompleto && dataEnvio) {
+                return 'ENVIO PARA FATURAMENTO';
+            }
+            
+            return 'AGUARDANDO';
+        }
 
-            if (!dataPedidoCompleto) {
-                return 'AGUARDANDO PEDIDO COMPLETO';
+        function getPendenciesNote(row) {
+            const dataRecebimento = row['DATA RECEBIMENTO SM'] || '';
+            const dataPedidoCompleto = row['DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)'] || '';
+            const userPendencies = row['PENDÊNCIAS'] || '';
+            
+            let notes = [];
+            
+            // Se houver diferença de data
+            if (dataRecebimento && dataPedidoCompleto) {
+                const diff = compareDates(dataRecebimento, dataPedidoCompleto);
+                if (diff !== null && diff > 0) {
+                    notes.push(`Atraso: ${diff} dias`);
+                }
             }
-            if (dataRecebimento === dataPedidoCompleto && !dataAprovacao) {
-                return 'EM APROVAÇÃO';
+            
+            // Adicionar pendências do usuário
+            if (userPendencies) {
+                notes.push(userPendencies);
             }
-            if (dataAprovacao && !dataEnvio) {
-                return 'PENDENTE DE ENVIO PARA FATURAMENTO';
-            }
-            if (dataEnvio) {
-                return 'ENVIADO PARA FATURAMENTO. Consulte o time de PD';
-            }
-            return 'AGUARDANDO PEDIDO COMPLETO';
+            
+            return notes.length > 0 ? notes.join(' | ') : '--';
         }
 
         function getStatusClass(status) {
-            if (status.includes('ENVIADO')) return 'status-enviado';
-            if (status === 'PENDENTE DE ENVIO PARA FATURAMENTO') return 'status-analise';
-            return 'status-aguardando';
+            if (status === 'PEDIDO INCOMPLETO') return 'status-incompleto';
+            if (status === 'EM ANÁLISE PELO SM') return 'status-analise';
+            if (status === 'ENVIO PARA FATURAMENTO') return 'status-faturamento';
+            return 'status-incompleto';
         }
 
         function updateCounts() {
-            const enviado = allData.filter(r => calculateStatus(r).includes('ENVIADO')).length;
-            const analise = allData.filter(r => calculateStatus(r) === 'PENDENTE DE ENVIO PARA FATURAMENTO').length;
-            const aguardando = allData.filter(r => calculateStatus(r).includes('APROVAÇÃO') || calculateStatus(r).includes('AGUARDANDO')).length;
+            const incompleto = allData.filter(r => calculateStatus(r) === 'PEDIDO INCOMPLETO').length;
+            const analise = allData.filter(r => calculateStatus(r) === 'EM ANÁLISE PELO SM').length;
+            const faturamento = allData.filter(r => calculateStatus(r) === 'ENVIO PARA FATURAMENTO').length;
 
-            document.getElementById('count-enviado').textContent = enviado;
+            document.getElementById('count-incompleto').textContent = incompleto;
             document.getElementById('count-analise').textContent = analise;
-            document.getElementById('count-aguardando').textContent = aguardando;
+            document.getElementById('count-faturamento').textContent = faturamento;
         }
 
         function populateKAMFilter() {
@@ -264,7 +304,8 @@
 
             let filtered = allData.map(row => ({
                 ...row,
-                _status: calculateStatus(row)
+                _status: calculateStatus(row),
+                _pendencies: getPendenciesNote(row)
             }));
 
             if (filterKam) filtered = filtered.filter(r => r['KAM'] === filterKam);
@@ -284,9 +325,9 @@
                             <th>Cliente</th>
                             <th>Receb. SM</th>
                             <th>Pedido Completo</th>
-                            <th>Status</th>
                             <th>Pendências</th>
                             <th>Envio PD</th>
+                            <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -301,9 +342,9 @@
                         <td>${row['CLIENTE'] || '--'}</td>
                         <td>${row['DATA RECEBIMENTO SM'] || '--'}</td>
                         <td>${row['DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)'] || '--'}</td>
-                        <td><span class="${statusClass}">${row._status}</span></td>
-                        <td>${row['PENDÊNCIAS (MOTIVO)'] || '--'}</td>
+                        <td>${row._pendencies}</td>
                         <td>${row['DATA ENVIO PARA O PD'] || '--'}</td>
+                        <td><span class="${statusClass}">${row._status}</span></td>
                     </tr>
                 `;
             });
