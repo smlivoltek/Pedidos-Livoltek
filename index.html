@@ -128,7 +128,7 @@
     <div class="container">
         <div class="header">
             <h1>📊 Painel de Status de Pedidos</h1>
-            <p>Livoltek - Sales Management | Atualiza em tempo real</p>
+            <p>Livoltek - Sales Management | Atualização diária</p>
         </div>
 
         <div class="cards-grid">
@@ -146,26 +146,59 @@
             </div>
         </div>
 
-        <div class="filters">
-            <div>
-                <label for="filter-kam">KAM:</label>
-                <select id="filter-kam">
-                    <option value="">Todos</option>
-                </select>
+        <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px;">
+            <button id="tab-pedidos" class="tab-button active" onclick="switchTab('pedidos')" style="padding: 10px 20px; background: #34495e; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">Pedidos</button>
+            <button id="tab-analise" class="tab-button" onclick="switchTab('analise')" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">Análise de Pendências</button>
+        </div>
+
+        <div id="pedidos-section">
+            <div class="filters">
+                <div>
+                    <label for="filter-kam">KAM:</label>
+                    <select id="filter-kam">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="filter-status">Status:</label>
+                    <select id="filter-status">
+                        <option value="">Todos</option>
+                        <option value="PENDÊNCIA DO VENDEDOR">Pendência do Vendedor</option>
+                        <option value="EM ANÁLISE (SM)">Em Análise (SM)</option>
+                        <option value="ENVIADO PARA FATURAMENTO (PD)">Enviado para Faturamento (PD)</option>
+                    </select>
+                </div>
             </div>
-            <div>
-                <label for="filter-status">Status:</label>
-                <select id="filter-status">
-                    <option value="">Todos</option>
-                    <option value="PENDÊNCIA DO VENDEDOR">Pendência do Vendedor</option>
-                    <option value="EM ANÁLISE (SM)">Em Análise (SM)</option>
-                    <option value="ENVIADO PARA FATURAMENTO (PD)">Enviado para Faturamento (PD)</option>
-                </select>
+
+            <div id="table-container">
+                <div class="loading">Carregando dados...</div>
             </div>
         </div>
 
-        <div id="table-container">
-            <div class="loading">Carregando dados...</div>
+        <div id="analise-section" style="display: none;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
+                <div class="card incompleto" style="border: none; background: #fff9f5;">
+                    <h3 id="stat-total-recebidos" style="color: #34495e;">0</h3>
+                    <p style="color: #7f8c8d; font-weight: 500;">Total de Pedidos Recebidos</p>
+                </div>
+                <div class="card incompleto" style="border: none; background: #fadbd8;">
+                    <h3 id="stat-pendencia-vendedor" style="color: #c0392b;">0</h3>
+                    <p style="color: #7f8c8d; font-weight: 500;">Pendências do Vendedor</p>
+                </div>
+                <div class="card analise" style="border: none; background: #fef5e7;">
+                    <h3 id="stat-justificativa-sm" style="color: #d68910;">0</h3>
+                    <p style="color: #7f8c8d; font-weight: 500;">Com Justificativa SM</p>
+                </div>
+                <div class="card faturamento" style="border: none; background: #d5f4e6;">
+                    <h3 id="stat-sem-pendencia" style="color: #186a3b;">0</h3>
+                    <p style="color: #7f8c8d; font-weight: 500;">Sem Pendências</p>
+                </div>
+            </div>
+
+            <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <h3 style="margin-bottom: 15px; color: #2c3e50;">Detalhamento por KAM</h3>
+                <div id="kam-breakdown" style="font-size: 13px;"></div>
+            </div>
         </div>
 
         <div class="last-update">
@@ -408,6 +441,98 @@
             document.getElementById('table-container').innerHTML = html;
         }
 
+        function switchTab(tabName) {
+            const pedidosSection = document.getElementById('pedidos-section');
+            const analiseSection = document.getElementById('analise-section');
+            const tabPedidos = document.getElementById('tab-pedidos');
+            const tabAnalise = document.getElementById('tab-analise');
+            
+            if (tabName === 'pedidos') {
+                pedidosSection.style.display = 'block';
+                analiseSection.style.display = 'none';
+                tabPedidos.style.background = '#34495e';
+                tabAnalise.style.background = '#95a5a6';
+            } else {
+                pedidosSection.style.display = 'none';
+                analiseSection.style.display = 'block';
+                tabPedidos.style.background = '#95a5a6';
+                tabAnalise.style.background = '#34495e';
+            }
+        }
+
+        function updateAnalytics() {
+            const totalRecebidos = allData.length;
+            
+            const comPendenciaVendedor = allData.filter(row => {
+                const pendenciaVendedor = extractPendenciaVendedor(row['PENDÊNCIAS']);
+                return pendenciaVendedor !== '--';
+            }).length;
+            
+            const comJustificativaSM = allData.filter(row => {
+                const justificativaSM = extractJustificativaSM(row['PENDÊNCIAS']);
+                return justificativaSM !== '--';
+            }).length;
+            
+            const semPendencia = allData.filter(row => {
+                const status = calculateStatus(row);
+                return status === 'ENVIADO PARA FATURAMENTO (PD)';
+            }).length;
+            
+            // Atualizar cards
+            document.getElementById('stat-total-recebidos').textContent = totalRecebidos;
+            document.getElementById('stat-pendencia-vendedor').textContent = comPendenciaVendedor;
+            document.getElementById('stat-justificativa-sm').textContent = comJustificativaSM;
+            document.getElementById('stat-sem-pendencia').textContent = semPendencia;
+            
+            // Atualizar detalhamento por KAM
+            const kamBreakdown = {};
+            allData.forEach(row => {
+                const kam = row['KAM'] || 'Sem KAM';
+                if (!kamBreakdown[kam]) {
+                    kamBreakdown[kam] = {
+                        total: 0,
+                        pendenciaVendedor: 0,
+                        justificativaSM: 0,
+                        enviado: 0
+                    };
+                }
+                kamBreakdown[kam].total++;
+                
+                const pendenciaVendedor = extractPendenciaVendedor(row['PENDÊNCIAS']);
+                if (pendenciaVendedor !== '--') {
+                    kamBreakdown[kam].pendenciaVendedor++;
+                }
+                
+                const justificativaSM = extractJustificativaSM(row['PENDÊNCIAS']);
+                if (justificativaSM !== '--') {
+                    kamBreakdown[kam].justificativaSM++;
+                }
+                
+                if (calculateStatus(row) === 'ENVIADO PARA FATURAMENTO (PD)') {
+                    kamBreakdown[kam].enviado++;
+                }
+            });
+            
+            // Renderizar tabela de breakdown
+            let breakdownHtml = '<table style="width: 100%; border-collapse: collapse; font-size: 13px;"><thead><tr style="background: #ecf0f1;"><th style="padding: 8px; text-align: left; border-bottom: 1px solid #bdc3c7;">KAM</th><th style="padding: 8px; text-align: center; border-bottom: 1px solid #bdc3c7;">Total</th><th style="padding: 8px; text-align: center; border-bottom: 1px solid #bdc3c7;">Pendência Vendedor</th><th style="padding: 8px; text-align: center; border-bottom: 1px solid #bdc3c7;">Justificativa SM</th><th style="padding: 8px; text-align: center; border-bottom: 1px solid #bdc3c7;">Enviado</th></tr></thead><tbody>';
+            
+            Object.keys(kamBreakdown).sort().forEach(kam => {
+                const data = kamBreakdown[kam];
+                breakdownHtml += `
+                    <tr style="border-bottom: 1px solid #ecf0f1;">
+                        <td style="padding: 8px;">${kam}</td>
+                        <td style="padding: 8px; text-align: center; font-weight: 500;">${data.total}</td>
+                        <td style="padding: 8px; text-align: center; color: #e74c3c;">${data.pendenciaVendedor}</td>
+                        <td style="padding: 8px; text-align: center; color: #f39c12;">${data.justificativaSM}</td>
+                        <td style="padding: 8px; text-align: center; color: #27ae60;">${data.enviado}</td>
+                    </tr>
+                `;
+            });
+            
+            breakdownHtml += '</tbody></table>';
+            document.getElementById('kam-breakdown').innerHTML = breakdownHtml;
+        }
+
         async function fetchData() {
             try {
                 const response = await fetch(CSV_URL);
@@ -418,6 +543,7 @@
                 updateCounts();
                 populateKAMFilter();
                 renderTable();
+                updateAnalytics();
                 document.getElementById('last-update').textContent = new Date().toLocaleString('pt-BR');
             } catch (error) {
                 console.error('Erro:', error);
