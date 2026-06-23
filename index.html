@@ -138,11 +138,11 @@
             </div>
             <div class="card analise">
                 <h3 id="count-analise">0</h3>
-                <p>Em Análise (24h)</p>
+                <p>Em Análise (SM)</p>
             </div>
             <div class="card faturamento">
                 <h3 id="count-faturamento">0</h3>
-                <p>Envio Faturamento</p>
+                <p>Enviado para Faturamento (PD)</p>
             </div>
         </div>
 
@@ -158,8 +158,8 @@
                 <select id="filter-status">
                     <option value="">Todos</option>
                     <option value="PENDÊNCIA DO VENDEDOR">Pendência do Vendedor</option>
-                    <option value="EM ANÁLISE PELO SM">Em Análise SM</option>
-                    <option value="ENVIO PARA FATURAMENTO">Envio Faturamento</option>
+                    <option value="EM ANÁLISE (SM)">Em Análise (SM)</option>
+                    <option value="ENVIADO PARA FATURAMENTO (PD)">Enviado para Faturamento (PD)</option>
                 </select>
             </div>
         </div>
@@ -234,14 +234,14 @@
                 return 'PENDÊNCIA DO VENDEDOR';
             }
             
-            // Regra 2: Recebimento SM + Pedido Completo preenchidos + Envio PD vazio = EM ANÁLISE PELO SM
+            // Regra 2: Recebimento SM + Pedido Completo preenchidos + Envio PD vazio = EM ANÁLISE (SM)
             if (dataRecebimento && dataPedidoCompleto && !dataEnvio) {
-                return 'EM ANÁLISE PELO SM';
+                return 'EM ANÁLISE (SM)';
             }
             
-            // Regra 3: Todos preenchidos = ENVIO PARA FATURAMENTO
+            // Regra 3: Todos preenchidos = ENVIADO PARA FATURAMENTO (PD)
             if (dataRecebimento && dataPedidoCompleto && dataEnvio) {
-                return 'ENVIO PARA FATURAMENTO';
+                return 'ENVIADO PARA FATURAMENTO (PD)';
             }
             
             return 'AGUARDANDO';
@@ -320,15 +320,15 @@
 
         function getStatusClass(status) {
             if (status === 'PENDÊNCIA DO VENDEDOR') return 'status-incompleto';
-            if (status === 'EM ANÁLISE PELO SM') return 'status-analise';
-            if (status === 'ENVIO PARA FATURAMENTO') return 'status-faturamento';
+            if (status === 'EM ANÁLISE (SM)') return 'status-analise';
+            if (status === 'ENVIADO PARA FATURAMENTO (PD)') return 'status-faturamento';
             return 'status-incompleto';
         }
 
         function updateCounts() {
             const pendencia = allData.filter(r => calculateStatus(r) === 'PENDÊNCIA DO VENDEDOR').length;
-            const analise = allData.filter(r => calculateStatus(r) === 'EM ANÁLISE PELO SM').length;
-            const faturamento = allData.filter(r => calculateStatus(r) === 'ENVIO PARA FATURAMENTO').length;
+            const analise = allData.filter(r => calculateStatus(r) === 'EM ANÁLISE (SM)').length;
+            const faturamento = allData.filter(r => calculateStatus(r) === 'ENVIADO PARA FATURAMENTO (PD)').length;
 
             document.getElementById('count-pendencia').textContent = pendencia;
             document.getElementById('count-analise').textContent = analise;
@@ -372,12 +372,12 @@
                             <th>Nº Pedido</th>
                             <th>Cliente</th>
                             <th>Receb. SM</th>
+                            <th>Pendências</th>
                             <th>Pedido Completo</th>
                             <th>SLA Receb. → Completo</th>
-                            <th>Pendências</th>
-                            <th>Justificativa SM</th>
                             <th>Envio PD</th>
-                            <th>SLA Completo → Envio</th>
+                            <th>SLA envio</th>
+                            <th>Justificativa SM</th>
                             <th>Status</th>
                         </tr>
                     </thead>
@@ -393,12 +393,12 @@
                         <td><strong>${row['Nº DO PEDIDO']}</strong></td>
                         <td>${row['CLIENTE'] || '--'}</td>
                         <td>${row['DATA RECEBIMENTO SM'] || '--'}</td>
+                        <td>${row._pendencies}</td>
                         <td>${row['DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)'] || '--'}</td>
                         <td>${getSLARecebCompleto(row)}</td>
-                        <td>${row._pendencies}</td>
-                        <td>${justificativaSM}</td>
                         <td>${row['DATA ENVIO PARA O PD'] || '--'}</td>
                         <td>${getSLACompletoEnvio(row)}</td>
+                        <td>${justificativaSM}</td>
                         <td><span class="${statusClass}">${row._status}</span></td>
                     </tr>
                 `;
