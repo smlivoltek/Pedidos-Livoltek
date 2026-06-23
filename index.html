@@ -252,22 +252,27 @@
             const dataPedidoCompleto = row['DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)'] || '';
             const userPendencies = row['PENDÊNCIAS'] || '';
             
-            let notes = [];
-            
-            // Se houver diferença de data
+            // Calcular se há atraso
+            let temAtraso = false;
             if (dataRecebimento && dataPedidoCompleto) {
                 const diff = compareDates(dataRecebimento, dataPedidoCompleto);
                 if (diff !== null && diff > 0) {
-                    notes.push(`Atraso: ${diff} dias`);
+                    temAtraso = true;
                 }
             }
             
-            // Adicionar pendências do usuário
-            if (userPendencies) {
-                notes.push(userPendencies);
+            // Se tem atraso mas não tem motivo preenchido = alerta
+            if (temAtraso && !userPendencies) {
+                return '⚠️ Preencha o motivo';
             }
             
-            return notes.length > 0 ? notes.join(' | ') : '--';
+            // Se tem motivo preenchido = mostrar apenas o motivo
+            if (userPendencies) {
+                return userPendencies;
+            }
+            
+            // Se não tem atraso e não tem motivo = vazio
+            return '--';
         }
 
         function getSLARecebCompleto(row) {
