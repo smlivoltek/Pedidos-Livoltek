@@ -133,8 +133,8 @@
 
         <div class="cards-grid">
             <div class="card incompleto">
-                <h3 id="count-incompleto">0</h3>
-                <p>Pedido Incompleto</p>
+                <h3 id="count-pendencia">0</h3>
+                <p>Pendência do Vendedor</p>
             </div>
             <div class="card analise">
                 <h3 id="count-analise">0</h3>
@@ -157,7 +157,7 @@
                 <label for="filter-status">Status:</label>
                 <select id="filter-status">
                     <option value="">Todos</option>
-                    <option value="PEDIDO INCOMPLETO">Pedido Incompleto</option>
+                    <option value="PENDÊNCIA DO VENDEDOR">Pendência do Vendedor</option>
                     <option value="EM ANÁLISE PELO SM">Em Análise SM</option>
                     <option value="ENVIO PARA FATURAMENTO">Envio Faturamento</option>
                 </select>
@@ -229,9 +229,9 @@
             const dataPedidoCompleto = row['DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)'] || '';
             const dataEnvio = row['DATA ENVIO PARA O PD'] || '';
             
-            // Regra 1: Recebimento SM preenchido + Pedido Completo vazio = PEDIDO INCOMPLETO
+            // Regra 1: Recebimento SM preenchido + Pedido Completo vazio = PENDÊNCIA DO VENDEDOR
             if (dataRecebimento && !dataPedidoCompleto) {
-                return 'PEDIDO INCOMPLETO';
+                return 'PENDÊNCIA DO VENDEDOR';
             }
             
             // Regra 2: Recebimento SM + Pedido Completo preenchidos + Envio PD vazio = EM ANÁLISE PELO SM
@@ -270,19 +270,39 @@
             return notes.length > 0 ? notes.join(' | ') : '--';
         }
 
+        function getSLARecebCompleto(row) {
+            const dataRecebimento = row['DATA RECEBIMENTO SM'] || '';
+            const dataPedidoCompleto = row['DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)'] || '';
+            
+            if (!dataRecebimento || !dataPedidoCompleto) return '--';
+            
+            const diff = compareDates(dataRecebimento, dataPedidoCompleto);
+            return diff !== null ? `${diff} dias` : '--';
+        }
+
+        function getSLACompletoEnvio(row) {
+            const dataPedidoCompleto = row['DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)'] || '';
+            const dataEnvio = row['DATA ENVIO PARA O PD'] || '';
+            
+            if (!dataPedidoCompleto || !dataEnvio) return '--';
+            
+            const diff = compareDates(dataPedidoCompleto, dataEnvio);
+            return diff !== null ? `${diff} dias` : '--';
+        }
+
         function getStatusClass(status) {
-            if (status === 'PEDIDO INCOMPLETO') return 'status-incompleto';
+            if (status === 'PENDÊNCIA DO VENDEDOR') return 'status-incompleto';
             if (status === 'EM ANÁLISE PELO SM') return 'status-analise';
             if (status === 'ENVIO PARA FATURAMENTO') return 'status-faturamento';
             return 'status-incompleto';
         }
 
         function updateCounts() {
-            const incompleto = allData.filter(r => calculateStatus(r) === 'PEDIDO INCOMPLETO').length;
+            const pendencia = allData.filter(r => calculateStatus(r) === 'PENDÊNCIA DO VENDEDOR').length;
             const analise = allData.filter(r => calculateStatus(r) === 'EM ANÁLISE PELO SM').length;
             const faturamento = allData.filter(r => calculateStatus(r) === 'ENVIO PARA FATURAMENTO').length;
 
-            document.getElementById('count-incompleto').textContent = incompleto;
+            document.getElementById('count-pendencia').textContent = pendencia;
             document.getElementById('count-analise').textContent = analise;
             document.getElementById('count-faturamento').textContent = faturamento;
         }
@@ -325,8 +345,10 @@
                             <th>Cliente</th>
                             <th>Receb. SM</th>
                             <th>Pedido Completo</th>
+                            <th>SLA Receb. → Completo</th>
                             <th>Pendências</th>
                             <th>Envio PD</th>
+                            <th>SLA Completo → Envio</th>
                             <th>Status</th>
                         </tr>
                     </thead>
@@ -342,8 +364,10 @@
                         <td>${row['CLIENTE'] || '--'}</td>
                         <td>${row['DATA RECEBIMENTO SM'] || '--'}</td>
                         <td>${row['DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)'] || '--'}</td>
+                        <td>${getSLARecebCompleto(row)}</td>
                         <td>${row._pendencies}</td>
                         <td>${row['DATA ENVIO PARA O PD'] || '--'}</td>
+                        <td>${getSLACompletoEnvio(row)}</td>
                         <td><span class="${statusClass}">${row._status}</span></td>
                     </tr>
                 `;
