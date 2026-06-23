@@ -247,10 +247,33 @@
             return 'AGUARDANDO';
         }
 
+        function extractPendenciaVendedor(pendenciesText) {
+            if (!pendenciesText) return '--';
+            
+            const match = pendenciesText.match(/vendedor:\s*([^|]*?)(?:\||$)/i);
+            if (match && match[1].trim()) {
+                return match[1].trim();
+            }
+            return '--';
+        }
+
+        function extractJustificativaSM(pendenciesText) {
+            if (!pendenciesText) return '--';
+            
+            const match = pendenciesText.match(/SM:\s*([^|]*?)(?:\||$)/i);
+            if (match && match[1].trim()) {
+                return match[1].trim();
+            }
+            return '--';
+        }
+
         function getPendenciesNote(row) {
             const dataRecebimento = row['DATA RECEBIMENTO SM'] || '';
             const dataPedidoCompleto = row['DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)'] || '';
             const userPendencies = row['PENDÊNCIAS'] || '';
+            
+            // Extrair pendência do vendedor
+            const pendenciaVendedor = extractPendenciaVendedor(userPendencies);
             
             // Calcular se há atraso
             let temAtraso = false;
@@ -262,13 +285,13 @@
             }
             
             // Se tem atraso mas não tem motivo preenchido = alerta
-            if (temAtraso && !userPendencies) {
+            if (temAtraso && pendenciaVendedor === '--') {
                 return '⚠️ Preencha o motivo';
             }
             
             // Se tem motivo preenchido = mostrar apenas o motivo
-            if (userPendencies) {
-                return userPendencies;
+            if (pendenciaVendedor !== '--') {
+                return pendenciaVendedor;
             }
             
             // Se não tem atraso e não tem motivo = vazio
@@ -352,6 +375,7 @@
                             <th>Pedido Completo</th>
                             <th>SLA Receb. → Completo</th>
                             <th>Pendências</th>
+                            <th>Justificativa SM</th>
                             <th>Envio PD</th>
                             <th>SLA Completo → Envio</th>
                             <th>Status</th>
@@ -362,6 +386,7 @@
 
             filtered.forEach(row => {
                 const statusClass = getStatusClass(row._status);
+                const justificativaSM = extractJustificativaSM(row['PENDÊNCIAS']);
                 html += `
                     <tr>
                         <td>${row['KAM'] || '--'}</td>
@@ -371,6 +396,7 @@
                         <td>${row['DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)'] || '--'}</td>
                         <td>${getSLARecebCompleto(row)}</td>
                         <td>${row._pendencies}</td>
+                        <td>${justificativaSM}</td>
                         <td>${row['DATA ENVIO PARA O PD'] || '--'}</td>
                         <td>${getSLACompletoEnvio(row)}</td>
                         <td><span class="${statusClass}">${row._status}</span></td>
