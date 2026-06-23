@@ -208,16 +208,34 @@
         let allData = [];
 
         function parseCSV(text) {
-            const lines = text.split('\n').filter(l => l.trim());
-            const headers = lines[0].split(',').map(h => h.trim());
+            // Detecta separador (vírgula ou pipe)
+            const isSemicolon = text.substring(0, 500).split('\n')[0].includes(';');
+            const isPipe = text.substring(0, 500).split('\n')[0].includes('|') && !text.substring(0, 500).split('\n')[0].includes(',');
+            const separator = isPipe ? '|' : (isSemicolon ? ';' : ',');
+            
+            let lines = text.split('\n').filter(l => l.trim());
+            const headers = lines[0].split(separator).map(h => h.trim());
+            
+            // Mapeamento de nomes de colunas
+            const columnMap = {
+                'PO (Relacionado)': 'Nº DO PEDIDO',
+                'Customer (Relacionado)': 'CLIENTE',
+                'Data Pedido Recebido': 'DATA RECEBIMENTO SM',
+                'Data Pedido Completo': 'DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)',
+                'Data Aprovação no Totvs': 'DATA APROVAÇÃO NO TOTVS',
+                'Data Envio Faturamento': 'DATA ENVIO PARA O PD',
+                'Quais Pendências?': 'PENDÊNCIAS (MOTIVO)'
+            };
+            
             const data = [];
             for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].split(',').map(v => v.trim());
+                const values = lines[i].split(separator).map(v => v.trim().replace(/^"|"$/g, ''));
                 const row = {};
                 headers.forEach((h, idx) => {
-                    row[h] = values[idx] || '';
+                    const mappedKey = columnMap[h] || h;
+                    row[mappedKey] = values[idx] || '';
                 });
-                if (row['Nº DO PEDIDO']) data.push(row);
+                if (row['Nº DO PEDIDO'] && row['KAM']) data.push(row);
             }
             return data;
         }
