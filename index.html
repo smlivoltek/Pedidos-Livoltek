@@ -196,8 +196,8 @@
             </div>
 
             <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-                <h3 style="margin-bottom: 15px; color: #2c3e50;">Detalhamento por KAM</h3>
-                <div id="kam-breakdown" style="font-size: 13px;"></div>
+                <h3 style="margin-bottom: 20px; color: #2c3e50;">Pedidos por Dia da Semana</h3>
+                <canvas id="chart-dias" style="max-height: 300px;"></canvas>
             </div>
         </div>
 
@@ -206,7 +206,7 @@
         </div>
     </div>
 
-    <script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
         const CSV_URL = 'pedidos.csv';
         let allData = [];
 
@@ -484,53 +484,69 @@
             document.getElementById('stat-justificativa-sm').textContent = comJustificativaSM;
             document.getElementById('stat-sem-pendencia').textContent = semPendencia;
             
-            // Atualizar detalhamento por KAM
-            const kamBreakdown = {};
+            // Contar pedidos por dia da semana
+            const diasSemana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+            const contagemPorDia = [0, 0, 0, 0, 0, 0, 0];
+            
             allData.forEach(row => {
-                const kam = row['KAM'] || 'Sem KAM';
-                if (!kamBreakdown[kam]) {
-                    kamBreakdown[kam] = {
-                        total: 0,
-                        pendenciaVendedor: 0,
-                        justificativaSM: 0,
-                        enviado: 0
-                    };
-                }
-                kamBreakdown[kam].total++;
-                
-                const pendenciaVendedor = extractPendenciaVendedor(row['PENDÊNCIAS']);
-                if (pendenciaVendedor !== '--') {
-                    kamBreakdown[kam].pendenciaVendedor++;
-                }
-                
-                const justificativaSM = extractJustificativaSM(row['PENDÊNCIAS']);
-                if (justificativaSM !== '--') {
-                    kamBreakdown[kam].justificativaSM++;
-                }
-                
-                if (calculateStatus(row) === 'ENVIADO PARA FATURAMENTO (PD)') {
-                    kamBreakdown[kam].enviado++;
+                const dataRecebimento = row['DATA RECEBIMENTO SM'] || '';
+                if (dataRecebimento) {
+                    const [d, m, y] = dataRecebimento.split('/');
+                    const date = new Date(y, m - 1, d);
+                    const diaSemana = date.getDay();
+                    // JavaScript: 0=Sunday, 1=Monday... convertemos para 0=Monday
+                    const diaIndex = diaSemana === 0 ? 6 : diaSemana - 1;
+                    contagemPorDia[diaIndex]++;
                 }
             });
             
-            // Renderizar tabela de breakdown
-            let breakdownHtml = '<table style="width: 100%; border-collapse: collapse; font-size: 13px;"><thead><tr style="background: #ecf0f1;"><th style="padding: 8px; text-align: left; border-bottom: 1px solid #bdc3c7;">KAM</th><th style="padding: 8px; text-align: center; border-bottom: 1px solid #bdc3c7;">Total</th><th style="padding: 8px; text-align: center; border-bottom: 1px solid #bdc3c7;">Pendência Vendedor</th><th style="padding: 8px; text-align: center; border-bottom: 1px solid #bdc3c7;">Justificativa SM</th><th style="padding: 8px; text-align: center; border-bottom: 1px solid #bdc3c7;">Enviado</th></tr></thead><tbody>';
+            // Renderizar gráfico
+            const ctx = document.getElementById('chart-dias').getContext('2d');
             
-            Object.keys(kamBreakdown).sort().forEach(kam => {
-                const data = kamBreakdown[kam];
-                breakdownHtml += `
-                    <tr style="border-bottom: 1px solid #ecf0f1;">
-                        <td style="padding: 8px;">${kam}</td>
-                        <td style="padding: 8px; text-align: center; font-weight: 500;">${data.total}</td>
-                        <td style="padding: 8px; text-align: center; color: #e74c3c;">${data.pendenciaVendedor}</td>
-                        <td style="padding: 8px; text-align: center; color: #f39c12;">${data.justificativaSM}</td>
-                        <td style="padding: 8px; text-align: center; color: #27ae60;">${data.enviado}</td>
-                    </tr>
-                `;
+            // Destruir gráfico anterior se existir
+            if (window.chartDias) {
+                window.chartDias.destroy();
+            }
+            
+            window.chartDias = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: diasSemana,
+                    datasets: [{
+                        label: 'Quantidade de Pedidos',
+                        data: contagemPorDia,
+                        backgroundColor: [
+                            '#3498db',
+                            '#3498db',
+                            '#3498db',
+                            '#f39c12',
+                            '#e74c3c',
+                            '#95a5a6',
+                            '#95a5a6'
+                        ],
+                        borderRadius: 4,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    indexAxis: undefined,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
             });
-            
-            breakdownHtml += '</tbody></table>';
-            document.getElementById('kam-breakdown').innerHTML = breakdownHtml;
         }
 
         async function fetchData() {
