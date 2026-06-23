@@ -1,1 +1,362 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Status de Pedidos - Livoltek</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tabler-icons@latest/tabler-icons.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f5f7fa;
+            color: #2c3e50;
+        }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        .header {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+        .header p {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .card.enviado { border-left: 4px solid #27ae60; }
+        .card.analise { border-left: 4px solid #f39c12; }
+        .card.aguardando { border-left: 4px solid #e74c3c; }
+        .card h3 { font-size: 32px; font-weight: bold; margin-bottom: 5px; }
+        .card p { color: #7f8c8d; font-size: 13px; }
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .filters select {
+            padding: 8px 12px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .filters label { font-weight: 500; color: #2c3e50; }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        th {
+            background: #34495e;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            border-bottom: 2px solid #2c3e50;
+        }
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #ecf0f1;
+            font-size: 13px;
+        }
+        tr:hover { background: #f9fafb; }
+        .status-enviado {
+            background: #d5f4e6;
+            color: #27ae60;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: 500;
+            display: inline-block;
+        }
+        .status-analise {
+            background: #fef5e7;
+            color: #f39c12;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: 500;
+            display: inline-block;
+        }
+        .status-aguardando {
+            background: #fadbd8;
+            color: #e74c3c;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: 500;
+            display: inline-block;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 20px;
+            padding: 20px;
+        }
+        .pagination button {
+            padding: 8px 12px;
+            border: 1px solid #bdc3c7;
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .pagination button.active {
+            background: #34495e;
+            color: white;
+            border-color: #34495e;
+        }
+        .last-update {
+            text-align: right;
+            color: #7f8c8d;
+            font-size: 12px;
+            margin-top: 15px;
+        }
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Painel de Status de Pedidos</h1>
+            <p>Livoltek - Sales Management | Atualiza a cada 2 horas</p>
+        </div>
 
+        <div class="cards-grid">
+            <div class="card enviado">
+                <h3 id="count-enviado">0</h3>
+                <p>Enviado para Faturamento</p>
+            </div>
+            <div class="card analise">
+                <h3 id="count-analise">0</h3>
+                <p>Pendente de Envio</p>
+            </div>
+            <div class="card aguardando">
+                <h3 id="count-aguardando">0</h3>
+                <p>Em Aprovação</p>
+            </div>
+        </div>
+
+        <div class="filters">
+            <div>
+                <label for="filter-kam">KAM:</label>
+                <select id="filter-kam">
+                    <option value="">Todos</option>
+                </select>
+            </div>
+            <div>
+                <label for="filter-status">Status:</label>
+                <select id="filter-status">
+                    <option value="">Todos</option>
+                    <option value="EM APROVAÇÃO">Em Aprovação</option>
+                    <option value="PENDENTE DE ENVIO PARA FATURAMENTO">Pendente de Envio</option>
+                    <option value="ENVIADO PARA FATURAMENTO">Enviado para Faturamento</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="table-container">
+            <div class="loading">Carregando dados...</div>
+        </div>
+
+        <div class="last-update">
+            Última atualização: <span id="last-update">--</span> | Próxima atualização em 2 horas
+        </div>
+    </div>
+
+    <script>
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRZXJB7RTC1UVoj7r7bmyqa-YHryeGtc3hmE1DIS_WD_qDLauiBp-Ob9LVf_tNBxLvP0NzFW_F00Dns/pub?gid=0&single=true&output=csv';
+        const REFRESH_INTERVAL = 2 * 60 * 60 * 1000; // 2 horas
+        let allData = [];
+
+        function parseCSV(text) {
+            const lines = text.split('\n').filter(l => l.trim());
+            const headers = lines[0].split(',').map(h => h.trim());
+            const data = [];
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',').map(v => v.trim());
+                const row = {};
+                headers.forEach((h, idx) => {
+                    row[h] = values[idx] || '';
+                });
+                if (row['Nº DO PEDIDO']) data.push(row);
+            }
+            return data;
+        }
+
+        function calculateStatus(row) {
+            const dataRecebimento = row['DATA RECEBIMENTO SM'] || '';
+            const dataPedidoCompleto = row['DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)'] || '';
+            const dataAprovacao = row['DATA APROVAÇÃO NO TOTVS'] || '';
+            const dataEnvio = row['DATA ENVIO PARA O PD'] || '';
+
+            if (!dataPedidoCompleto) {
+                return 'AGUARDANDO PEDIDO COMPLETO';
+            }
+
+            // Se Data Pedido Completo == Data Pedido Recebido E Data Aprovação vazia
+            if (dataRecebimento === dataPedidoCompleto && !dataAprovacao) {
+                return 'EM APROVAÇÃO';
+            }
+
+            // Se tem Data Aprovação E não tem Data Envio
+            if (dataAprovacao && !dataEnvio) {
+                return 'PENDENTE DE ENVIO PARA FATURAMENTO';
+            }
+
+            // Se tem Data Envio (todas as datas preenchidas)
+            if (dataEnvio) {
+                return 'ENVIADO PARA FATURAMENTO. Consulte o time de PD';
+            }
+
+            return 'AGUARDANDO PEDIDO COMPLETO';
+        }
+
+        function getStatusClass(status) {
+            if (status === 'ENVIADO PARA FATURAMENTO. Consulte o time de PD') return 'status-enviado';
+            if (status === 'PENDENTE DE ENVIO PARA FATURAMENTO') return 'status-analise';
+            return 'status-aguardando';
+        }
+
+        function updateCounts() {
+            const enviado = allData.filter(r => calculateStatus(r).includes('ENVIADO')).length;
+            const analise = allData.filter(r => calculateStatus(r) === 'PENDENTE DE ENVIO PARA FATURAMENTO').length;
+            const aguardando = allData.filter(r => calculateStatus(r).includes('APROVAÇÃO') || calculateStatus(r).includes('AGUARDANDO')).length;
+
+            document.getElementById('count-enviado').textContent = enviado;
+            document.getElementById('count-analise').textContent = analise;
+            document.getElementById('count-aguardando').textContent = aguardando;
+        }
+
+        function populateKAMFilter() {
+            const kams = [...new Set(allData.map(r => r['KAM'] || '').filter(Boolean))].sort();
+            const select = document.getElementById('filter-kam');
+            kams.forEach(kam => {
+                const opt = document.createElement('option');
+                opt.value = kam;
+                opt.textContent = kam;
+                select.appendChild(opt);
+            });
+        }
+
+        function renderTable() {
+            const filterKam = document.getElementById('filter-kam').value;
+            const filterStatus = document.getElementById('filter-status').value;
+
+            let filtered = allData.map(row => ({
+                ...row,
+                _status: calculateStatus(row)
+            }));
+
+            if (filterKam) filtered = filtered.filter(r => r['KAM'] === filterKam);
+            if (filterStatus) filtered = filtered.filter(r => r._status === filterStatus);
+
+            if (filtered.length === 0) {
+                document.getElementById('table-container').innerHTML = '<div class="no-data">Nenhum pedido encontrado com esses filtros.</div>';
+                return;
+            }
+
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>KAM</th>
+                            <th>Nº Pedido</th>
+                            <th>Cliente</th>
+                            <th>Receb. SM</th>
+                            <th>Pedido Completo</th>
+                            <th>Status</th>
+                            <th>Pendências</th>
+                            <th>Envio PD</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            filtered.forEach(row => {
+                const statusClass = getStatusClass(row._status);
+                html += `
+                    <tr>
+                        <td>${row['KAM'] || '--'}</td>
+                        <td><strong>${row['Nº DO PEDIDO']}</strong></td>
+                        <td>${row['CLIENTE'] || '--'}</td>
+                        <td>${row['DATA RECEBIMENTO SM'] || '--'}</td>
+                        <td>${row['DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)'] || '--'}</td>
+                        <td><span class="${statusClass}">${row._status}</span></td>
+                        <td>${row['PENDÊNCIAS (MOTIVO)'] || '--'}</td>
+                        <td>${row['DATA ENVIO PARA O PD'] || '--'}</td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+            document.getElementById('table-container').innerHTML = html;
+        }
+
+        async function fetchData() {
+            try {
+                const response = await fetch(CSV_URL);
+                if (!response.ok) throw new Error('Erro ao carregar dados');
+                const text = await response.text();
+                allData = parseCSV(text);
+                
+                updateCounts();
+                populateKAMFilter();
+                renderTable();
+                document.getElementById('last-update').textContent = new Date().toLocaleString('pt-BR');
+            } catch (error) {
+                console.error('Erro:', error);
+                document.getElementById('table-container').innerHTML = `<div class="no-data">Erro ao carregar dados. Tente atualizar a página.</div>`;
+            }
+        }
+
+        // Event listeners
+        document.getElementById('filter-kam').addEventListener('change', renderTable);
+        document.getElementById('filter-status').addEventListener('change', renderTable);
+
+        // Inicial
+        fetchData();
+
+        // Refresh a cada 2 horas
+        setInterval(fetchData, REFRESH_INTERVAL);
+    </script>
+</body>
+</html>
