@@ -80,7 +80,6 @@
             font-weight: 600;
             font-size: 13px;
             text-transform: uppercase;
-            border-bottom: 2px solid #2c3e50;
         }
         td {
             padding: 12px 15px;
@@ -183,13 +182,30 @@
             const headers = lines[0].split(',').map(h => h.trim());
             const data = [];
             
+            // Mapeamento de colunas: CSV completo → 8 colunas do dashboard
+            const columnMap = {
+                'KAM': 'KAM',
+                'PO (Relacionado)': 'Nº DO PEDIDO',
+                'Customer (Relacionado)': 'CLIENTE',
+                'Data Pedido Recebido': 'DATA RECEBIMENTO SM',
+                'Data Pedido Completo': 'DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)',
+                'Data Aprovação no Totvs': 'DATA APROVAÇÃO NO TOTVS',
+                'Data Envio Faturamento': 'DATA ENVIO PARA O PD',
+                'Quais Pendências?': 'PENDÊNCIAS (MOTIVO)'
+            };
+            
             for (let i = 1; i < lines.length; i++) {
                 const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
                 const row = {};
+                
+                // Ler TODAS as colunas do CSV
                 headers.forEach((h, idx) => {
-                    row[h] = values[idx] || '';
+                    const mappedKey = columnMap[h] || h;
+                    row[mappedKey] = values[idx] || '';
                 });
-                if (row['Nº DO PEDIDO']) data.push(row);
+                
+                // Manter apenas se tem pedido e KAM
+                if (row['Nº DO PEDIDO'] && row['KAM']) data.push(row);
             }
             return data;
         }
@@ -309,7 +325,7 @@
                 document.getElementById('last-update').textContent = new Date().toLocaleString('pt-BR');
             } catch (error) {
                 console.error('Erro:', error);
-                document.getElementById('table-container').innerHTML = `<div class="no-data">Erro ao carregar dados. Verifique se pedidos.csv existe no repositório.</div>`;
+                document.getElementById('table-container').innerHTML = `<div class="no-data">Erro ao carregar dados. Verifique se pedidos.csv existe.</div>`;
             }
         }
 
