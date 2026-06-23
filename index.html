@@ -245,20 +245,37 @@
 
         function parseCSV(text) {
             const lines = text.split('\n').filter(l => l.trim());
-            if (lines.length < 2) return [];
+            if (lines.length < 2) {
+                console.error('CSV vazio ou inválido');
+                return [];
+            }
             
-            const headers = lines[0].split(',').map(h => h.trim());
+            // Detectar separador (vírgula ou tab)
+            const firstLine = lines[0];
+            const isSemicolon = (firstLine.match(/;/g) || []).length > (firstLine.match(/,/g) || []).length;
+            const separator = isSemicolon ? ';' : ',';
+            
+            const headers = lines[0].split(separator).map(h => h.trim());
+            console.log('Headers encontrados:', headers.length);
+            console.log('Separador detectado:', separator);
+            
             const data = [];
-            
             for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].split(',').map(v => v.trim());
+                const values = lines[i].split(separator).map(v => v.trim());
                 const row = {};
+                
                 headers.forEach((h, idx) => {
                     const mappedKey = columnMap[h] || h;
                     row[mappedKey] = values[idx] || '';
                 });
-                if (row['Nº DO PEDIDO'] && row['KAM']) data.push(row);
+                
+                // Validar se tem pelo menos PO e KAM
+                if (row['Nº DO PEDIDO'] && row['KAM']) {
+                    data.push(row);
+                }
             }
+            
+            console.log('Pedidos carregados:', data.length);
             return data;
         }
 
@@ -524,10 +541,19 @@
 
         async function fetchData() {
             try {
+                console.log('Iniciando carregamento do CSV...');
                 const response = await fetch(CSV_URL);
-                if (!response.ok) throw new Error('Erro ao carregar CSV');
+                if (!response.ok) throw new Error('Erro ao carregar CSV: ' + response.status);
                 const text = await response.text();
+                console.log('CSV carregado, tamanho:', text.length);
+                
                 allData = parseCSV(text);
+                console.log('Dados parseados:', allData.length, 'pedidos');
+                
+                if (allData.length === 0) {
+                    document.getElementById('table-container').innerHTML = '<div class="no-data">⚠️ Nenhum pedido encontrado. Verifique se o CSV tem dados válidos com PO (Relacionado) e KAM preenchidos.</div>';
+                    return;
+                }
                 
                 updateCounts();
                 populateKAMFilter();
@@ -535,8 +561,8 @@
                 updateAnalytics();
                 document.getElementById('last-update').textContent = new Date().toLocaleString('pt-BR');
             } catch (error) {
-                console.error('Erro:', error);
-                document.getElementById('table-container').innerHTML = `<div class="no-data">Erro ao carregar dados. Verifique se pedidos.csv existe.</div>`;
+                console.error('Erro completo:', error);
+                document.getElementById('table-container').innerHTML = `<div class="no-data">❌ Erro: ${error.message}</div>`;
             }
         }
 
