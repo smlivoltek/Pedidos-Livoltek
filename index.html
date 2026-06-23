@@ -463,9 +463,15 @@
         function updateAnalytics() {
             const totalRecebidos = allData.length;
             
+            // Pendências do Vendedor = quando há atraso (SLA > 0 dias)
             const comPendenciaVendedor = allData.filter(row => {
-                const pendenciaVendedor = extractPendenciaVendedor(row['PENDÊNCIAS']);
-                return pendenciaVendedor !== '--';
+                const dataRecebimento = row['DATA RECEBIMENTO SM'] || '';
+                const dataPedidoCompleto = row['DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)'] || '';
+                
+                if (!dataRecebimento || !dataPedidoCompleto) return false;
+                
+                const sla = compareDates(dataRecebimento, dataPedidoCompleto);
+                return sla !== null && sla > 0;
             }).length;
             
             const comJustificativaSM = allData.filter(row => {
@@ -500,8 +506,11 @@
                 }
             });
             
-            // Renderizar gráfico
-            const ctx = document.getElementById('chart-dias').getContext('2d');
+            // Renderizar gráfico (apenas se elemento existe)
+            const chartElement = document.getElementById('chart-dias');
+            if (!chartElement) return; // Elemento não existe ainda
+            
+            const ctx = chartElement.getContext('2d');
             
             // Destruir gráfico anterior se existir
             if (window.chartDias) {
