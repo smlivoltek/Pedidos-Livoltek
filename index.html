@@ -234,13 +234,13 @@
 
         const columnMap = {
             'PO (Relacionado)': 'Nº DO PEDIDO',
-            'Customer (Relacionado)': 'CLIENTE',
+            'Customer (relacionado)': 'CLIENTE',
             'KAM': 'KAM',
             'Data Pedido Recebido': 'DATA RECEBIMENTO SM',
             'Data Pedido Completo': 'DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)',
-            'Data Aprovação no Totvs': 'DATA APROVAÇÃO NO TOTVS',
             'Data Envio Faturamento': 'DATA ENVIO PARA O PD',
-            'Quais Pendências?': 'PENDÊNCIAS'
+            'Quais Pendências?': 'PENDÊNCIAS',
+            'Prazo de Entrega': 'PRAZO DE ENTREGA'
         };
 
         function parseCSV(text) {
@@ -305,14 +305,13 @@
         }
 
         function getPendenciesNote(row) {
-            const dataRecebimento = row['DATA RECEBIMENTO SM'] || '';
-            const dataPedidoCompleto = row['DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)'] || '';
+            const pendenciesText = row['PENDÊNCIAS'] || '';
+            if (!pendenciesText) return '--';
             
-            if (!dataRecebimento || !dataPedidoCompleto) return '--';
-            
-            const diff = compareDates(dataRecebimento, dataPedidoCompleto);
-            if (diff !== null && diff > 0) {
-                return `Atraso: ${diff} dias`;
+            // Procurar por "kam:" no campo PENDÊNCIAS
+            const match = pendenciesText.match(/kam:\s*([^|]*?)(?:\||$)/i);
+            if (match && match[1].trim()) {
+                return match[1].trim();
             }
             return '--';
         }
