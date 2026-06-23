@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel de Status de Pedidos - Livoltek</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tabler-icons@latest/tabler-icons.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -20,15 +19,8 @@
             margin-bottom: 25px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 8px;
-            color: #2c3e50;
-        }
-        .header p {
-            color: #7f8c8d;
-            font-size: 14px;
-        }
+        .header h1 { font-size: 28px; margin-bottom: 8px; color: #2c3e50; }
+        .header p { color: #7f8c8d; font-size: 14px; }
         .cards-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -120,26 +112,6 @@
             font-weight: 500;
             display: inline-block;
         }
-        .pagination {
-            display: flex;
-            justify-content: center;
-            gap: 5px;
-            margin-top: 20px;
-            padding: 20px;
-        }
-        .pagination button {
-            padding: 8px 12px;
-            border: 1px solid #bdc3c7;
-            background: white;
-            cursor: pointer;
-            border-radius: 4px;
-            font-size: 13px;
-        }
-        .pagination button.active {
-            background: #34495e;
-            color: white;
-            border-color: #34495e;
-        }
         .last-update {
             text-align: right;
             color: #7f8c8d;
@@ -157,7 +129,7 @@
     <div class="container">
         <div class="header">
             <h1>📊 Painel de Status de Pedidos</h1>
-            <p>Livoltek - Sales Management | Atualiza a cada 2 horas</p>
+            <p>Livoltek - Sales Management | Atualiza em tempo real</p>
         </div>
 
         <div class="cards-grid">
@@ -198,44 +170,26 @@
         </div>
 
         <div class="last-update">
-            Última atualização: <span id="last-update">--</span> | Próxima atualização em 2 horas
+            Última atualização: <span id="last-update">--</span>
         </div>
     </div>
 
     <script>
-        const CSV_URL = 'https://raw.githubusercontent.com/smlivoltek/Pedidos-Livoltek/main/docs/Pedidos.csv';
-        const REFRESH_INTERVAL = 2 * 60 * 60 * 1000; // 2 horas
+        const CSV_URL = 'pedidos.csv';
         let allData = [];
 
         function parseCSV(text) {
-            // Detecta separador (vírgula ou pipe)
-            const isSemicolon = text.substring(0, 500).split('\n')[0].includes(';');
-            const isPipe = text.substring(0, 500).split('\n')[0].includes('|') && !text.substring(0, 500).split('\n')[0].includes(',');
-            const separator = isPipe ? '|' : (isSemicolon ? ';' : ',');
-            
-            let lines = text.split('\n').filter(l => l.trim());
-            const headers = lines[0].split(separator).map(h => h.trim());
-            
-            // Mapeamento de nomes de colunas
-            const columnMap = {
-                'PO (Relacionado)': 'Nº DO PEDIDO',
-                'Customer (Relacionado)': 'CLIENTE',
-                'Data Pedido Recebido': 'DATA RECEBIMENTO SM',
-                'Data Pedido Completo': 'DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)',
-                'Data Aprovação no Totvs': 'DATA APROVAÇÃO NO TOTVS',
-                'Data Envio Faturamento': 'DATA ENVIO PARA O PD',
-                'Quais Pendências?': 'PENDÊNCIAS (MOTIVO)'
-            };
-            
+            const lines = text.split('\n').filter(l => l.trim());
+            const headers = lines[0].split(',').map(h => h.trim());
             const data = [];
+            
             for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].split(separator).map(v => v.trim().replace(/^"|"$/g, ''));
+                const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
                 const row = {};
                 headers.forEach((h, idx) => {
-                    const mappedKey = columnMap[h] || h;
-                    row[mappedKey] = values[idx] || '';
+                    row[h] = values[idx] || '';
                 });
-                if (row['Nº DO PEDIDO'] && row['KAM']) data.push(row);
+                if (row['Nº DO PEDIDO']) data.push(row);
             }
             return data;
         }
@@ -249,27 +203,20 @@
             if (!dataPedidoCompleto) {
                 return 'AGUARDANDO PEDIDO COMPLETO';
             }
-
-            // Se Data Pedido Completo == Data Pedido Recebido E Data Aprovação vazia
             if (dataRecebimento === dataPedidoCompleto && !dataAprovacao) {
                 return 'EM APROVAÇÃO';
             }
-
-            // Se tem Data Aprovação E não tem Data Envio
             if (dataAprovacao && !dataEnvio) {
                 return 'PENDENTE DE ENVIO PARA FATURAMENTO';
             }
-
-            // Se tem Data Envio (todas as datas preenchidas)
             if (dataEnvio) {
                 return 'ENVIADO PARA FATURAMENTO. Consulte o time de PD';
             }
-
             return 'AGUARDANDO PEDIDO COMPLETO';
         }
 
         function getStatusClass(status) {
-            if (status === 'ENVIADO PARA FATURAMENTO. Consulte o time de PD') return 'status-enviado';
+            if (status.includes('ENVIADO')) return 'status-enviado';
             if (status === 'PENDENTE DE ENVIO PARA FATURAMENTO') return 'status-analise';
             return 'status-aguardando';
         }
@@ -352,7 +299,7 @@
         async function fetchData() {
             try {
                 const response = await fetch(CSV_URL);
-                if (!response.ok) throw new Error('Erro ao carregar dados');
+                if (!response.ok) throw new Error('Erro ao carregar CSV');
                 const text = await response.text();
                 allData = parseCSV(text);
                 
@@ -362,19 +309,14 @@
                 document.getElementById('last-update').textContent = new Date().toLocaleString('pt-BR');
             } catch (error) {
                 console.error('Erro:', error);
-                document.getElementById('table-container').innerHTML = `<div class="no-data">Erro ao carregar dados. Tente atualizar a página.</div>`;
+                document.getElementById('table-container').innerHTML = `<div class="no-data">Erro ao carregar dados. Verifique se pedidos.csv existe no repositório.</div>`;
             }
         }
 
-        // Event listeners
         document.getElementById('filter-kam').addEventListener('change', renderTable);
         document.getElementById('filter-status').addEventListener('change', renderTable);
 
-        // Inicial
         fetchData();
-
-        // Refresh a cada 2 horas
-        setInterval(fetchData, REFRESH_INTERVAL);
     </script>
 </body>
 </html>
