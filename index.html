@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel de Status de Pedidos - Livoltek</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -33,12 +34,30 @@
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             text-align: center;
+            border-left: 4px solid #95a5a6;
         }
-        .card.incompleto { border-left: 4px solid #e74c3c; }
-        .card.analise { border-left: 4px solid #f39c12; }
-        .card.faturamento { border-left: 4px solid #27ae60; }
         .card h3 { font-size: 32px; font-weight: bold; margin-bottom: 5px; }
         .card p { color: #7f8c8d; font-size: 13px; }
+        .tab-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+        .tab-button {
+            padding: 10px 20px;
+            background: #95a5a6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+        .tab-button.active {
+            background: #34495e;
+        }
         .filters {
             background: white;
             padding: 20px;
@@ -62,6 +81,11 @@
             text-align: center;
             padding: 40px;
             font-size: 14px;
+            color: #7f8c8d;
+        }
+        .no-data {
+            text-align: center;
+            padding: 40px;
             color: #7f8c8d;
         }
         table {
@@ -113,15 +137,14 @@
         }
         .last-update {
             text-align: right;
-            color: #7f8c8d;
             font-size: 12px;
-            margin-top: 15px;
+            color: #95a5a6;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #ecf0f1;
         }
-        .no-data {
-            text-align: center;
-            padding: 40px;
-            color: #7f8c8d;
-        }
+        #pedidos-section { display: block; }
+        #analise-section { display: none; }
     </style>
 </head>
 <body>
@@ -132,23 +155,23 @@
         </div>
 
         <div class="cards-grid">
-            <div class="card incompleto">
+            <div class="card">
                 <h3 id="count-pendencia">0</h3>
                 <p>Pendência do Vendedor</p>
             </div>
-            <div class="card analise">
+            <div class="card">
                 <h3 id="count-analise">0</h3>
                 <p>Em Análise (SM)</p>
             </div>
-            <div class="card faturamento">
+            <div class="card">
                 <h3 id="count-faturamento">0</h3>
                 <p>Enviado para Faturamento (PD)</p>
             </div>
         </div>
 
-        <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px;">
-            <button id="tab-pedidos" class="tab-button active" onclick="switchTab('pedidos')" style="padding: 10px 20px; background: #34495e; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">Pedidos</button>
-            <button id="tab-analise" class="tab-button" onclick="switchTab('analise')" style="padding: 10px 20px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">Análise de Pendências</button>
+        <div class="tab-buttons">
+            <button id="tab-pedidos" class="tab-button active" onclick="switchTab('pedidos')">Pedidos</button>
+            <button id="tab-analise" class="tab-button" onclick="switchTab('analise')">Análise de Pendências</button>
         </div>
 
         <div id="pedidos-section">
@@ -169,33 +192,31 @@
                     </select>
                 </div>
             </div>
-
             <div id="table-container">
                 <div class="loading">Carregando dados...</div>
             </div>
         </div>
 
-        <div id="analise-section" style="display: none;">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px;">
-                <div class="card incompleto" style="border: none; background: #fff9f5;">
-                    <h3 id="stat-total-recebidos" style="color: #34495e;">0</h3>
-                    <p style="color: #7f8c8d; font-weight: 500;">Total de Pedidos Recebidos</p>
+        <div id="analise-section">
+            <div class="cards-grid">
+                <div class="card">
+                    <h3 id="stat-total-recebidos">0</h3>
+                    <p>Total de Pedidos Recebidos</p>
                 </div>
-                <div class="card incompleto" style="border: none; background: #fadbd8;">
-                    <h3 id="stat-pendencia-vendedor" style="color: #c0392b;">0</h3>
-                    <p style="color: #7f8c8d; font-weight: 500;">Pendências do Vendedor</p>
+                <div class="card">
+                    <h3 id="stat-pendencia-vendedor">0</h3>
+                    <p>Pendências do Vendedor</p>
                 </div>
-                <div class="card analise" style="border: none; background: #fef5e7;">
-                    <h3 id="stat-justificativa-sm" style="color: #d68910;">0</h3>
-                    <p style="color: #7f8c8d; font-weight: 500;">Com Justificativa SM</p>
+                <div class="card">
+                    <h3 id="stat-justificativa-sm">0</h3>
+                    <p>Com Justificativa SM</p>
                 </div>
-                <div class="card faturamento" style="border: none; background: #d5f4e6;">
-                    <h3 id="stat-sem-pendencia" style="color: #186a3b;">0</h3>
-                    <p style="color: #7f8c8d; font-weight: 500;">Sem Pendências</p>
+                <div class="card">
+                    <h3 id="stat-sem-pendencia">0</h3>
+                    <p>Sem Pendências</p>
                 </div>
             </div>
-
-            <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-top: 20px;">
                 <h3 style="margin-bottom: 20px; color: #2c3e50;">Pedidos por Dia da Semana</h3>
                 <canvas id="chart-dias" style="max-height: 300px;"></canvas>
             </div>
@@ -206,42 +227,42 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script>
         const CSV_URL = 'pedidos.csv';
         let allData = [];
+        let window_chartDias = null;
+
+        const columnMap = {
+            'PO (Relacionado)': 'Nº DO PEDIDO',
+            'Customer (Relacionado)': 'CLIENTE',
+            'KAM': 'KAM',
+            'Data Pedido Recebido': 'DATA RECEBIMENTO SM',
+            'Data Pedido Completo': 'DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)',
+            'Data Aprovação no Totvs': 'DATA APROVAÇÃO NO TOTVS',
+            'Data Envio Faturamento': 'DATA ENVIO PARA O PD',
+            'Quais Pendências?': 'PENDÊNCIAS'
+        };
 
         function parseCSV(text) {
             const lines = text.split('\n').filter(l => l.trim());
+            if (lines.length < 2) return [];
+            
             const headers = lines[0].split(',').map(h => h.trim());
             const data = [];
             
-            const columnMap = {
-                'KAM': 'KAM',
-                'PO (Relacionado)': 'Nº DO PEDIDO',
-                'Customer (Relacionado)': 'CLIENTE',
-                'Data Pedido Recebido': 'DATA RECEBIMENTO SM',
-                'Data Pedido Completo': 'DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)',
-                'Data Aprovação no Totvs': 'DATA APROVAÇÃO NO TOTVS',
-                'Data Envio Faturamento': 'DATA ENVIO PARA O PD',
-                'Quais Pendências?': 'PENDÊNCIAS'
-            };
-            
             for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+                const values = lines[i].split(',').map(v => v.trim());
                 const row = {};
-                
                 headers.forEach((h, idx) => {
                     const mappedKey = columnMap[h] || h;
                     row[mappedKey] = values[idx] || '';
                 });
-                
                 if (row['Nº DO PEDIDO'] && row['KAM']) data.push(row);
             }
             return data;
         }
 
         function compareDates(data1, data2) {
-            // Converte DD/MM/YYYY para date
             const parseDate = (dateStr) => {
                 if (!dateStr || dateStr.trim() === '') return null;
                 const [d, m, y] = dateStr.split('/');
@@ -262,37 +283,20 @@
             const dataPedidoCompleto = row['DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)'] || '';
             const dataEnvio = row['DATA ENVIO PARA O PD'] || '';
             
-            // Regra 1: Recebimento SM preenchido + Pedido Completo vazio = PENDÊNCIA DO VENDEDOR
             if (dataRecebimento && !dataPedidoCompleto) {
                 return 'PENDÊNCIA DO VENDEDOR';
             }
-            
-            // Regra 2: Recebimento SM + Pedido Completo preenchidos + Envio PD vazio = EM ANÁLISE (SM)
             if (dataRecebimento && dataPedidoCompleto && !dataEnvio) {
                 return 'EM ANÁLISE (SM)';
             }
-            
-            // Regra 3: Todos preenchidos = ENVIADO PARA FATURAMENTO (PD)
             if (dataRecebimento && dataPedidoCompleto && dataEnvio) {
                 return 'ENVIADO PARA FATURAMENTO (PD)';
             }
-            
             return 'AGUARDANDO';
-        }
-
-        function extractPendenciaVendedor(pendenciesText) {
-            if (!pendenciesText) return '--';
-            
-            const match = pendenciesText.match(/vendedor:\s*([^|]*?)(?:\||$)/i);
-            if (match && match[1].trim()) {
-                return match[1].trim();
-            }
-            return '--';
         }
 
         function extractJustificativaSM(pendenciesText) {
             if (!pendenciesText) return '--';
-            
             const match = pendenciesText.match(/SM:\s*([^|]*?)(?:\||$)/i);
             if (match && match[1].trim()) {
                 return match[1].trim();
@@ -303,31 +307,13 @@
         function getPendenciesNote(row) {
             const dataRecebimento = row['DATA RECEBIMENTO SM'] || '';
             const dataPedidoCompleto = row['DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)'] || '';
-            const userPendencies = row['PENDÊNCIAS'] || '';
             
-            // Extrair pendência do vendedor
-            const pendenciaVendedor = extractPendenciaVendedor(userPendencies);
+            if (!dataRecebimento || !dataPedidoCompleto) return '--';
             
-            // Calcular se há atraso
-            let temAtraso = false;
-            if (dataRecebimento && dataPedidoCompleto) {
-                const diff = compareDates(dataRecebimento, dataPedidoCompleto);
-                if (diff !== null && diff > 0) {
-                    temAtraso = true;
-                }
+            const diff = compareDates(dataRecebimento, dataPedidoCompleto);
+            if (diff !== null && diff > 0) {
+                return `Atraso: ${diff} dias`;
             }
-            
-            // Se tem atraso mas não tem motivo preenchido = alerta
-            if (temAtraso && pendenciaVendedor === '--') {
-                return '⚠️ Preencha o motivo';
-            }
-            
-            // Se tem motivo preenchido = mostrar apenas o motivo
-            if (pendenciaVendedor !== '--') {
-                return pendenciaVendedor;
-            }
-            
-            // Se não tem atraso e não tem motivo = vazio
             return '--';
         }
 
@@ -450,26 +436,23 @@
             if (tabName === 'pedidos') {
                 pedidosSection.style.display = 'block';
                 analiseSection.style.display = 'none';
-                tabPedidos.style.background = '#34495e';
-                tabAnalise.style.background = '#95a5a6';
+                tabPedidos.classList.add('active');
+                tabAnalise.classList.remove('active');
             } else {
                 pedidosSection.style.display = 'none';
                 analiseSection.style.display = 'block';
-                tabPedidos.style.background = '#95a5a6';
-                tabAnalise.style.background = '#34495e';
+                tabPedidos.classList.remove('active');
+                tabAnalise.classList.add('active');
             }
         }
 
         function updateAnalytics() {
             const totalRecebidos = allData.length;
             
-            // Pendências do Vendedor = quando há atraso (SLA > 0 dias)
             const comPendenciaVendedor = allData.filter(row => {
                 const dataRecebimento = row['DATA RECEBIMENTO SM'] || '';
                 const dataPedidoCompleto = row['DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)'] || '';
-                
                 if (!dataRecebimento || !dataPedidoCompleto) return false;
-                
                 const sla = compareDates(dataRecebimento, dataPedidoCompleto);
                 return sla !== null && sla > 0;
             }).length;
@@ -484,13 +467,11 @@
                 return status === 'ENVIADO PARA FATURAMENTO (PD)';
             }).length;
             
-            // Atualizar cards
             document.getElementById('stat-total-recebidos').textContent = totalRecebidos;
             document.getElementById('stat-pendencia-vendedor').textContent = comPendenciaVendedor;
             document.getElementById('stat-justificativa-sm').textContent = comJustificativaSM;
             document.getElementById('stat-sem-pendencia').textContent = semPendencia;
             
-            // Contar pedidos por dia da semana
             const diasSemana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
             const contagemPorDia = [0, 0, 0, 0, 0, 0, 0];
             
@@ -500,39 +481,28 @@
                     const [d, m, y] = dataRecebimento.split('/');
                     const date = new Date(y, m - 1, d);
                     const diaSemana = date.getDay();
-                    // JavaScript: 0=Sunday, 1=Monday... convertemos para 0=Monday
                     const diaIndex = diaSemana === 0 ? 6 : diaSemana - 1;
                     contagemPorDia[diaIndex]++;
                 }
             });
             
-            // Renderizar gráfico (apenas se elemento existe)
             const chartElement = document.getElementById('chart-dias');
-            if (!chartElement) return; // Elemento não existe ainda
+            if (!chartElement) return;
             
             const ctx = chartElement.getContext('2d');
             
-            // Destruir gráfico anterior se existir
-            if (window.chartDias) {
-                window.chartDias.destroy();
+            if (window_chartDias) {
+                window_chartDias.destroy();
             }
             
-            window.chartDias = new Chart(ctx, {
+            window_chartDias = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: diasSemana,
                     datasets: [{
                         label: 'Quantidade de Pedidos',
                         data: contagemPorDia,
-                        backgroundColor: [
-                            '#3498db',
-                            '#3498db',
-                            '#3498db',
-                            '#f39c12',
-                            '#e74c3c',
-                            '#95a5a6',
-                            '#95a5a6'
-                        ],
+                        backgroundColor: ['#3498db', '#3498db', '#3498db', '#f39c12', '#e74c3c', '#95a5a6', '#95a5a6'],
                         borderRadius: 4,
                         borderSkipped: false
                     }]
@@ -540,18 +510,13 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
-                    indexAxis: undefined,
                     plugins: {
-                        legend: {
-                            display: false
-                        }
+                        legend: { display: false }
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
-                            ticks: {
-                                stepSize: 1
-                            }
+                            ticks: { stepSize: 1 }
                         }
                     }
                 }
