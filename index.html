@@ -157,7 +157,7 @@
         <div class="cards-grid">
             <div class="card">
                 <h3 id="count-pendencia">0</h3>
-                <p>Pendência do Vendedor</p>
+                <p>Aguardando Vendedor</p>
             </div>
             <div class="card">
                 <h3 id="count-analise">0</h3>
@@ -379,15 +379,8 @@
         }
 
         function updateCounts() {
-            // Pendências do Vendedor = quando há atraso (SLA > 0)
-            const pendencia = allData.filter(r => {
-                const dataRecebimento = r['DATA RECEBIMENTO SM'] || '';
-                const dataPedidoCompleto = r['DATA RECEBIMENTO OFICIAL (PEDIDO COMPLETO)'] || '';
-                if (!dataRecebimento || !dataPedidoCompleto) return false;
-                const sla = compareDates(dataRecebimento, dataPedidoCompleto);
-                return sla !== null && sla > 0;
-            }).length;
-            
+            // Aguardando Vendedor = status PENDÊNCIA (recebido mas não completo)
+            const pendencia = allData.filter(r => calculateStatus(r) === 'PENDÊNCIA DO VENDEDOR').length;
             const analise = allData.filter(r => calculateStatus(r) === 'EM ANÁLISE (SM)').length;
             const faturamento = allData.filter(r => calculateStatus(r) === 'ENVIADO PARA FATURAMENTO (PD)').length;
 
