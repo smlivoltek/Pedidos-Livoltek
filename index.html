@@ -258,7 +258,7 @@
                 return [];
             }
             
-            // Detectar separador (vírgula ou tab)
+            // Detectar separador
             const firstLine = lines[0];
             const isSemicolon = (firstLine.match(/;/g) || []).length > (firstLine.match(/,/g) || []).length;
             const separator = isSemicolon ? ';' : ',';
@@ -267,7 +267,8 @@
             console.log('Headers encontrados:', headers.length);
             console.log('Separador detectado:', separator);
             
-            const data = [];
+            const pedidoMap = {}; // Agrupar por PO
+            
             for (let i = 1; i < lines.length; i++) {
                 const values = lines[i].split(separator).map(v => v.trim());
                 const row = {};
@@ -277,13 +278,22 @@
                     row[mappedKey] = values[idx] || '';
                 });
                 
-                // Validar se tem pelo menos PO e KAM
-                if (row['Nº DO PEDIDO'] && row['KAM']) {
-                    data.push(row);
+                const po = row['Nº DO PEDIDO'];
+                const kam = row['KAM'];
+                
+                // Validar básico
+                if (!po || !kam) continue;
+                if (po.startsWith('#')) continue; // Erro
+                
+                // Guardar apenas primeira ocorrência de cada PO
+                // (primeira linha tem os dados corretos)
+                if (!pedidoMap[po]) {
+                    pedidoMap[po] = row;
                 }
             }
             
-            console.log('Pedidos carregados:', data.length);
+            const data = Object.values(pedidoMap);
+            console.log('Pedidos únicos carregados:', data.length);
             return data;
         }
 
