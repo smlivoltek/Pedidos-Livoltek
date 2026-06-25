@@ -270,9 +270,9 @@
                 </div>
             </div>
 
-            <!-- Top 5 Pendências que mais causam aumento no SLA -->
+            <!-- Top 5 Pendências — por frequência de ocorrência -->
             <div class="chart-container" style="margin-bottom:24px">
-                <h3>Top 5 Pendências que Mais Aumentam o SLA</h3>
+                <h3>Top 5 Pendências Mais Frequentes</h3>
                 <div id="top5Pendencias"></div>
             </div>
 
@@ -659,45 +659,41 @@
             }
         }
 
-        // ══ Top 5 Pendências que mais aumentam o SLA
+        // ══ Top 5 Pendências mais frequentes
         // Decompõe pendências combinadas (separadas por vírgula, ex: "Falta comprovante, Cliente sem cadastro")
-        // e soma o SLA (dias) atribuído a cada causa individualmente.
+        // e conta quantos pedidos cada causa apareceu em — sem relação com SLA, só frequência.
         function renderTop5Pendencias(){
             const container = document.getElementById('top5Pendencias');
             if (!container) return;
 
-            const causasSLA = {};
+            const causasCount = {};
             csvData.forEach(p => {
-                const sla = p['SLA Receb→Compl'];
                 const pend = p['Obs Pendências'];
-                if (!pend || !sla || sla <= 0) return;
+                if (!pend) return;
                 const causas = pend.split(',').map(c => c.trim()).filter(Boolean);
                 causas.forEach(causa => {
-                    if (!causasSLA[causa]) causasSLA[causa] = { sla: 0, count: 0 };
-                    causasSLA[causa].sla += sla;
-                    causasSLA[causa].count += 1;
+                    causasCount[causa] = (causasCount[causa] || 0) + 1;
                 });
             });
 
-            const top5 = Object.entries(causasSLA)
-                .sort((a,b) => b[1].sla - a[1].sla)
+            const top5 = Object.entries(causasCount)
+                .sort((a,b) => b[1] - a[1])
                 .slice(0, 5);
 
             if (top5.length === 0) {
-                container.innerHTML = '<div class="empty-state">Nenhuma pendência com SLA registrado.</div>';
+                container.innerHTML = '<div class="empty-state">Nenhuma pendência registrada.</div>';
                 return;
             }
 
-            const maxSLA = top5[0][1].sla;
+            const maxCount = top5[0][1];
             let html = '<div style="display:flex;flex-direction:column;gap:14px;padding:8px 0">';
-            top5.forEach(([causa, v], i) => {
-                const pct = Math.round((v.sla / maxSLA) * 100);
-                const media = (v.sla / v.count).toFixed(1);
+            top5.forEach(([causa, count], i) => {
+                const pct = Math.round((count / maxCount) * 100);
                 html += `
                     <div>
                         <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px">
                             <span><strong>${i+1}.</strong> ${causa}</span>
-                            <span style="color:#666">${v.sla}d total · ${v.count} pedido(s) · média ${media}d</span>
+                            <span style="color:#666">${count} pedido(s)</span>
                         </div>
                         <div style="background:#e5e7eb;border-radius:4px;height:10px;overflow:hidden">
                             <div style="background:#ef4444;height:100%;width:${pct}%;border-radius:4px"></div>
