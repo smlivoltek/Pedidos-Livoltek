@@ -563,9 +563,9 @@
             }
 
             let html = '<table><tr>';
-            html += '<th>KAM</th><th>Nº Pedido</th><th>Receb.</th><th>Completo</th>';
-            html += '<th>SLA</th><th>Obs Pendências</th>';
-            html += '<th>Envio PD</th><th>Status</th></tr>';
+            html += '<th>KAM</th><th>Nº Pedido</th><th>Primeiro Envio à SM</th><th>Envio Final à SM</th>';
+            html += '<th>Tempo de Regularização</th><th>Pendências do Pedido</th>';
+            html += '<th>Enviado para PD</th><th>Status</th></tr>';
 
             filtered.forEach(p => {
                 const statusClass = p.Status === 'PENDÊNCIA DO VENDEDOR' ? 'status-vendedor' :
