@@ -685,15 +685,20 @@
                 return;
             }
 
-            const maxCount = top5[0][1];
+            // Base real: mesma usada no card "Pedidos com Pendências Enviados para SM"
+            // (pedidos com SLA>0 + pedidos ainda sem Envio Final à SM) — não a maior barra do Top 5.
+            const comSLA = csvData.filter(p => p['SLA Receb→Compl'] > 0).length;
+            const semEnvioFinal = csvData.filter(p => p['Data Pedido Recebido'] && !p['Data Pedido Completo']).length;
+            const baseTotal = comSLA + semEnvioFinal;
+
             let html = '<div style="display:flex;flex-direction:column;gap:14px;padding:8px 0">';
             top5.forEach(([causa, count], i) => {
-                const pct = Math.round((count / maxCount) * 100);
+                const pct = baseTotal > 0 ? Math.round((count / baseTotal) * 100) : 0;
                 html += `
                     <div>
                         <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px">
                             <span><strong>${i+1}.</strong> ${causa}</span>
-                            <span style="color:#666">${count} pedido(s)</span>
+                            <span style="color:#666">${count} pedido(s) · ${pct}% do total</span>
                         </div>
                         <div style="background:#e5e7eb;border-radius:4px;height:10px;overflow:hidden">
                             <div style="background:#ef4444;height:100%;width:${pct}%;border-radius:4px"></div>
@@ -711,6 +716,12 @@
             const enviado = csvData.filter(p => p.Status === 'ENVIADO PARA FATURAMENTO (PD)').length;
             const pendComercial = csvData.filter(p => p.Status === 'PENDÊNCIA DO VENDEDOR').length;
             const analiseSM = csvData.filter(p => p.Status === 'EM ANÁLISE (SM)').length;
+            const total = enviado + pendComercial + analiseSM;
+
+            const pctEnviado = total > 0 ? Math.round((enviado/total)*100) : 0;
+            const pctPend = total > 0 ? Math.round((pendComercial/total)*100) : 0;
+            const pctAnalise = total > 0 ? Math.round((analiseSM/total)*100) : 0;
+            const percentuais = [pctEnviado, pctPend, pctAnalise];
 
             if (window.chartStatusInstance) window.chartStatusInstance.destroy();
             window.chartStatusInstance = new Chart(ctx, {
@@ -718,7 +729,7 @@
                 data: {
                     labels: ['Enviado para PD', 'Pendência Comercial', 'Em Análise SM'],
                     datasets: [{
-                        data: [enviado, pendComercial, analiseSM],
+                        data: percentuais,
                         backgroundColor: ['#16a34a', '#dc2626', '#f59e0b'],
                         borderRadius: 4
                     }]
@@ -727,9 +738,32 @@
                     indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: true,
-                    plugins: { legend: { display: false } },
-                    scales: { x: { beginAtZero: true } }
-                }
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (item) => `${item.parsed.x}%`
+                            }
+                        }
+                    },
+                    scales: { x: { beginAtZero: true, max: 100, ticks: { callback: (v) => v + '%' } } }
+                },
+                plugins: [{
+                    id: 'statusPctLabels',
+                    afterDatasetsDraw(chart) {
+                        const ctx = chart.ctx;
+                        const meta = chart.getDatasetMeta(0);
+                        meta.data.forEach((bar, i) => {
+                            ctx.save();
+                            ctx.font = 'bold 12px Arial';
+                            ctx.fillStyle = '#374151';
+                            ctx.textAlign = 'left';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(`${percentuais[i]}%`, bar.x + 8, bar.y);
+                            ctx.restore();
+                        });
+                    }
+                }]
             });
         }
 
