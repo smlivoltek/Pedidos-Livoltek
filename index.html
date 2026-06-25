@@ -264,10 +264,6 @@
                     <h3>SLA Vendedor > 0 dias</h3>
                     <div class="number" id="cardSLAVendedor">0</div>
                 </div>
-                <div class="card">
-                    <h3>SLA SM > 1 dia</h3>
-                    <div class="number" id="cardSlaSM">0</div>
-                </div>
             </div>
 
             <div class="chart-container">
@@ -452,7 +448,6 @@
 
             // Novas métricas para aba Análise
             const slaVendedor = csvData.filter(p => p['SLA Receb→Compl'] > 0).length;
-            const slaSM = csvData.filter(p => p['SLA Compl→Envio'] > 1).length;
 
             // Tela principal
             document.getElementById('cardTotal').textContent = total;
@@ -463,7 +458,6 @@
             // Aba Análise
             document.getElementById('cardTotalAnalise').textContent = total;
             document.getElementById('cardSLAVendedor').textContent = slaVendedor;
-            document.getElementById('cardSlaSM').textContent = slaSM;
 
             const kams = [...new Set(csvData.map(p => p.KAM).filter(Boolean))].sort();
             const kamSelect = document.getElementById('filterKAM');
@@ -494,7 +488,7 @@
             let html = '<table><tr>';
             html += '<th>KAM</th><th>Nº Pedido</th><th>Cliente</th><th>Receb.</th><th>Completo</th>';
             html += '<th>SLA</th><th>Obs Pendências</th>';
-            html += '<th>Envio PD</th><th>SLA</th><th>Obs SM</th><th>Status</th></tr>';
+            html += '<th>Envio PD</th><th>Status</th></tr>';
 
             filtered.forEach(p => {
                 const statusClass = p.Status === 'PENDÊNCIA DO VENDEDOR' ? 'status-vendedor' :
@@ -508,8 +502,6 @@
                 html += `<td class="sla">${p['SLA Receb→Compl'] !== '' ? p['SLA Receb→Compl'] + 'd' : '-'}</td>`;
                 html += `<td class="obs-small">${p['Obs Pendências'] || '-'}</td>`;
                 html += `<td>${p['Data Envio Faturamento'] || '-'}</td>`;
-                html += `<td class="sla">${p['SLA Compl→Envio'] !== '' ? p['SLA Compl→Envio'] + 'd' : '-'}</td>`;
-                html += `<td class="obs-small">${p['Obs SM'] || '-'}</td>`;
                 html += `<td><span class="status ${statusClass}">${p.Status || '-'}</span></td>`;
                 html += '</tr>';
             });
@@ -550,6 +542,9 @@
                 }
             });
 
+            const totalPedidos = Object.values(dias).reduce((a, b) => a + b, 0);
+            const percentuais = Object.values(dias).map(v => totalPedidos > 0 ? Math.round((v / totalPedidos) * 100) : 0);
+            
             const colors = ['#9e9e9e', '#1976d2', '#1976d2', '#1976d2', '#ff9800', '#f44336', '#9e9e9e'];
             const labels = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
@@ -574,7 +569,18 @@
                     maintainAspectRatio: true,
                     indexAxis: 'x',
                     plugins: {
-                        legend: { display: false }
+                        legend: { display: false },
+                        datalabels: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const index = context.dataIndex;
+                                    const value = context.parsed.y;
+                                    const pct = percentuais[index];
+                                    return `${value} pedidos (${pct}%)`;
+                                }
+                            }
+                        }
                     },
                     scales: {
                         y: {
@@ -582,7 +588,29 @@
                             max: Math.max(...Object.values(dias)) + 2
                         }
                     }
-                }
+                },
+                plugins: [{
+                    id: 'percentageLabels',
+                    afterDatasetsDraw(chart) {
+                        const ctx = chart.ctx;
+                        chart.data.datasets.forEach((dataset, datasetIndex) => {
+                            const meta = chart.getDatasetMeta(datasetIndex);
+                            meta.data.forEach((element, index) => {
+                                const value = dataset.data[index];
+                                const pct = percentuais[index];
+                                
+                                const x = element.x;
+                                const y = element.y - 10;
+                                
+                                ctx.fillStyle = 'black';
+                                ctx.font = 'bold 12px Arial';
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'bottom';
+                                ctx.fillText(`${pct}%`, x, y);
+                            });
+                        });
+                    }
+                }]
             });
         }
 
