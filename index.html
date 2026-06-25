@@ -290,7 +290,7 @@
                     <canvas id="chartTopProdutos" style="max-height: 320px;"></canvas>
                 </div>
                 <div class="chart-container">
-                    <h3>Pedidos por Armazém</h3>
+                    <h3>Origem dos Produtos</h3>
                     <canvas id="chartUnidade" style="max-height: 320px;"></canvas>
                 </div>
             </div>
@@ -406,19 +406,55 @@
             return rows;
         }
 
+        // ══ CADASTRO MESTRE DE PRODUTOS (compartilhado com o dashboard de Estoque)
+        // Resolve códigos "opacos" (ex: 104937) para a nomenclatura real do produto.
+        // Se essa fonte falhar, o dashboard continua funcionando normalmente —
+        // só não terá a nomenclatura enriquecida (cai no fallback da Descrição do próprio pedido).
+        let CADASTRO_PRODUTOS = {}; // { codigo: {nomenclatura, familia, categoria} }
+
+        function parseCadastroProdutos(csvText){
+            const linhas = csvText.trim().split('\n');
+            if (linhas.length < 2) return {};
+            const sep = linhas[0].includes(';') ? ';' : ',';
+            const map = {};
+            for (let i = 1; i < linhas.length; i++) {
+                const cols = linhas[i].split(sep);
+                const codigo = (cols[0] || '').trim().toUpperCase();
+                if (!codigo) continue;
+                map[codigo] = {
+                    nomenclatura: (cols[5] || '').trim() || (cols[1] || '').trim(), // NOMENCLATURA, fallback DESCRICAO
+                    familia: (cols[4] || '').trim(),
+                    categoria: (cols[3] || '').trim()
+                };
+            }
+            return map;
+        }
+
         function fetchAndProcessCSV() {
             const csvUrl = 'https://raw.githubusercontent.com/smlivoltek/Pedidos-Livoltek/main/pedidos.csv';
+            const cadastroUrl = 'https://raw.githubusercontent.com/smlivoltek/livoltek/main/data/cadastro_produtos.csv';
 
-            fetch(csvUrl)
-                .then(resp => {
-                    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                    return resp.text();
-                })
-                .then(csvText => {
-                    console.log('✅ CSV carregado');
+            const pPedidos = fetch(csvUrl).then(resp => {
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                return resp.text();
+            });
+
+            // Cadastro é opcional — se falhar, segue sem nomenclatura enriquecida
+            const pCadastro = fetch(cadastroUrl)
+                .then(resp => resp.ok ? resp.text() : '')
+                .catch(() => '');
+
+            Promise.all([pPedidos, pCadastro])
+                .then(([csvText, cadastroText]) => {
+                    console.log('✅ CSV de pedidos carregado');
+                    if (cadastroText) {
+                        CADASTRO_PRODUTOS = parseCadastroProdutos(cadastroText);
+                        console.log(`📘 Cadastro de produtos: ${Object.keys(CADASTRO_PRODUTOS).length} SKUs`);
+                    } else {
+                        console.warn('⚠️ Cadastro de produtos não disponível — usando descrição do pedido como fallback');
+                    }
                     const rows = parseCSV(csvText);
                     console.log(`📦 Linhas brutas: ${rows.length}`);
-                    
                     processData(rows);
                 })
                 .catch(err => {
@@ -429,8 +465,10 @@
         }
 
         let produtosVendidos = []; // {codigo, descricao, qtdTotal} — Top 10 mais vendidos
+        let rowsGlobal = []; // linhas brutas (1 por item) — necessário para somar qtd por armazém
 
         function processData(rows) {
+            rowsGlobal = rows;
             csvData = [];
             const seen = new Set();
 
@@ -443,7 +481,10 @@
                 const cod = row.codProduto;
                 if (!cod) return;
                 if (!prodMap[cod]) {
-                    prodMap[cod] = { codigo: cod, descricao: row.descProduto || cod, qtdTotal: 0 };
+                    // Cadastro mestre tem prioridade sobre a descrição solta do pedido
+                    const cad = CADASTRO_PRODUTOS[cod.toUpperCase()];
+                    const descricao = (cad && cad.nomenclatura) || row.descProduto || cod;
+                    prodMap[cod] = { codigo: cod, descricao, qtdTotal: 0 };
                 }
                 prodMap[cod].qtdTotal += row.qtd;
             });
@@ -734,17 +775,28 @@
         }
 
         // ══ GRÁFICO: Pedidos por Unidade (Warehouse)
+        // ══ GRÁFICO: Origem dos Produtos
+        // Agrega por QUANTIDADE DE PRODUTOS vendidos por armazém (não por nº de pedidos).
+        // Isso reflete de onde o estoque realmente saiu, métrica mais útil pro comercial
+        // do que simplesmente contar pedidos — um pedido grande de um armazém pesa o que deve.
         function drawChartUnidade(){
             const ctx = document.getElementById('chartUnidade');
             if (!ctx) return;
-            const counts = {};
-            csvData.forEach(p => {
-                const w = p.Warehouse || 'Não informado';
-                counts[w] = (counts[w] || 0) + 1;
+            const qtdPorWh = {};
+            let totalGeral = 0;
+
+            rowsGlobal.forEach(row => {
+                if (!row.po || !row.po.startsWith('LIV')) return;
+                if (!row.codProduto) return; // ignora linhas de continuação sem produto
+                const w = row.warehouse || 'Não informado';
+                qtdPorWh[w] = (qtdPorWh[w] || 0) + row.qtd;
+                totalGeral += row.qtd;
             });
-            const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+
+            const sorted = Object.entries(qtdPorWh).sort((a,b) => b[1]-a[1]);
             const labels = sorted.map(s => s[0]);
             const data = sorted.map(s => s[1]);
+            const percentuais = sorted.map(s => totalGeral > 0 ? Math.round((s[1]/totalGeral)*100) : 0);
 
             if (window.chartUnidadeInstance) window.chartUnidadeInstance.destroy();
             window.chartUnidadeInstance = new Chart(ctx, {
@@ -757,11 +809,36 @@
                     indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: true,
-                    plugins: { legend: { display: false } },
-                    scales: { x: { beginAtZero: true } }
-                }
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (item) => `${fmtNum(item.parsed.x)} un. (${percentuais[item.dataIndex]}%)`
+                            }
+                        }
+                    },
+                    scales: { x: { beginAtZero: true, title: { display: true, text: 'Quantidade de produtos' } } }
+                },
+                plugins: [{
+                    id: 'pctLabels',
+                    afterDatasetsDraw(chart) {
+                        const ctx = chart.ctx;
+                        const meta = chart.getDatasetMeta(0);
+                        meta.data.forEach((bar, i) => {
+                            ctx.save();
+                            ctx.font = 'bold 12px Arial';
+                            ctx.fillStyle = '#5b21b6';
+                            ctx.textAlign = 'left';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(`${percentuais[i]}%`, bar.x + 8, bar.y);
+                            ctx.restore();
+                        });
+                    }
+                }]
             });
         }
+
+        function fmtNum(n){ return Math.round(n).toLocaleString('pt-BR'); }
 
         function drawChart() {
             const ctx = document.getElementById('chartDias');
