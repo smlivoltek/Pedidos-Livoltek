@@ -7,6 +7,17 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* ══ PALETA PADRÃO (4 cores) ══
+           Azul    #2563eb — geral, produtos, origem, tendências
+           Verde   #16a34a — positivo, enviado/concluído
+           Laranja #f59e0b — em andamento, atenção
+           Vermelho#dc2626 — pendências, alertas               */
+        :root{
+            --cor-azul: #2563eb;
+            --cor-verde: #16a34a;
+            --cor-laranja: #f59e0b;
+            --cor-vermelho: #dc2626;
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: #f5f5f5;
@@ -45,11 +56,11 @@
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.08);
             text-align: center;
-            border-left: 4px solid #0066cc;
+            border-left: 4px solid var(--cor-azul);
         }
-        .card.vendedor { border-left-color: #c62828; }
-        .card.analise { border-left-color: #e65100; }
-        .card.faturamento { border-left-color: #2e7d32; }
+        .card.vendedor { border-left-color: var(--cor-vermelho); }
+        .card.analise { border-left-color: var(--cor-laranja); }
+        .card.faturamento { border-left-color: var(--cor-verde); }
         .card h3 { 
             font-size: 12px; 
             color: #999; 
@@ -153,16 +164,16 @@
             white-space: nowrap;
         }
         .status-vendedor { 
-            background: #ffebee; 
-            color: #c62828;
+            background: #fee2e2; 
+            color: var(--cor-vermelho);
         }
         .status-analise { 
-            background: #fff3e0; 
-            color: #e65100;
+            background: #fef3c7; 
+            color: var(--cor-laranja);
         }
         .status-faturamento { 
-            background: #e8f5e9; 
-            color: #2e7d32;
+            background: #dcfce7; 
+            color: var(--cor-verde);
         }
         .empty-state {
             text-align: center;
@@ -172,15 +183,26 @@
         }
         .chart-container {
             background: white;
-            padding: 20px;
+            padding: 20px 24px;
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.08);
             margin-bottom: 20px;
+            border: 1px solid #eef0f2;
         }
         .chart-container h3 {
             margin-bottom: 20px;
-            font-size: 16px;
-            color: #333;
+            font-size: 15px;
+            font-weight: 600;
+            color: #1f2937;
+            letter-spacing: 0.2px;
+        }
+        .row-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 900px) {
+            .row-2col { grid-template-columns: 1fr; }
         }
         .sla { 
             text-align: center;
@@ -258,25 +280,26 @@
         </div>
 
         <div id="tabAnalise" class="tab-content">
-            <!-- CARDS - NOVOS INDICADORES NA ABA ANÁLISE -->
-            <div class="cards" style="margin-bottom: 30px;">
+            <!-- Linha 2 — Indicadores Complementares -->
+            <div class="cards" style="margin-bottom: 24px;">
                 <div class="card">
                     <h3>Total de Pedidos Únicos</h3>
                     <div class="number" id="cardTotalAnalise">0</div>
                 </div>
-                <div class="card">
-                    <h3>Pedidos com Pendências Enviados para SM</h3>
+                <div class="card vendedor">
+                    <h3>Pedidos com Pendências Enviadas para SM</h3>
                     <div class="number" id="cardSLAVendedor">0</div>
                 </div>
             </div>
 
-            <!-- Top 5 Pendências — por frequência de ocorrência -->
+            <!-- Linha 3 — Principais Pendências -->
             <div class="chart-container" style="margin-bottom:24px">
-                <h3>Top 5 Pendências Mais Frequentes</h3>
-                <div id="top5Pendencias"></div>
+                <h3>Top 10 Pendências dos Pedidos</h3>
+                <canvas id="chartPendencias" style="max-height: 360px;"></canvas>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
+            <!-- Linha 4 — Indicadores Estratégicos -->
+            <div class="row-2col" style="margin-bottom:24px">
                 <div class="chart-container">
                     <h3>Top 10 Produtos Mais Vendidos</h3>
                     <canvas id="chartTopProdutos" style="max-height: 320px;"></canvas>
@@ -287,9 +310,10 @@
                 </div>
             </div>
 
+            <!-- Linha 5 -->
             <div class="chart-container">
                 <h3>Pedidos por Dia da Semana</h3>
-                <canvas id="chartDias" style="max-height: 400px;"></canvas>
+                <canvas id="chartDias" style="max-height: 360px;"></canvas>
             </div>
         </div>
     </div>
@@ -645,19 +669,51 @@
             if (tab === 'analise') {
                 setTimeout(() => {
                     drawChart();
-                    renderTop5Pendencias();
+                    drawChartPendencias();
                     drawChartTopProdutos();
                     drawChartUnidade();
                 }, 100);
             }
         }
 
-        // ══ Top 5 Pendências mais frequentes
+        // ══ OPÇÕES PADRÃO — mesmo estilo em todos os gráficos do dashboard
+        // Barra horizontal, mesma fonte/tamanho de eixo, mesma ausência de legenda,
+        // mesmo grid leve. Usar sempre que possível para manter consistência visual.
+        function PADRAO_CHART_OPTIONS(tituloEixoX){
+            return {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#1f2937',
+                        titleFont: { size: 12, weight: '600' },
+                        bodyFont: { size: 12 },
+                        padding: 10
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: tituloEixoX ? { display: true, text: tituloEixoX, font: { size: 11 } } : undefined,
+                        grid: { color: '#f1f3f5' },
+                        ticks: { font: { size: 11 } }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: { font: { size: 11 } }
+                    }
+                }
+            };
+        }
+
+        // ══ GRÁFICO: Top 10 Pendências dos Pedidos
         // Decompõe pendências combinadas (separadas por vírgula, ex: "Falta comprovante, Cliente sem cadastro")
-        // e conta quantos pedidos cada causa apareceu em — sem relação com SLA, só frequência.
-        function renderTop5Pendencias(){
-            const container = document.getElementById('top5Pendencias');
-            if (!container) return;
+        // e conta quantos pedidos cada causa apareceu em. Cor vermelha (padrão para pendências/alertas).
+        function drawChartPendencias(){
+            const ctx = document.getElementById('chartPendencias');
+            if (!ctx) return;
 
             const causasCount = {};
             csvData.forEach(p => {
@@ -669,37 +725,20 @@
                 });
             });
 
-            const top5 = Object.entries(causasCount)
-                .sort((a,b) => b[1] - a[1])
-                .slice(0, 5);
+            const top10 = Object.entries(causasCount).sort((a,b) => b[1]-a[1]).slice(0, 10);
+            const ordenado = [...top10].reverse(); // maior no topo da barra horizontal
+            const labels = ordenado.map(o => o[0]);
+            const data = ordenado.map(o => o[1]);
 
-            if (top5.length === 0) {
-                container.innerHTML = '<div class="empty-state">Nenhuma pendência registrada.</div>';
-                return;
-            }
-
-            // Base real: mesma usada no card "Pedidos com Pendências Enviados para SM"
-            // (pedidos com SLA>0 + pedidos ainda sem Envio Final à SM) — não a maior barra do Top 5.
-            const comSLA = csvData.filter(p => p['SLA Receb→Compl'] > 0).length;
-            const semEnvioFinal = csvData.filter(p => p['Data Pedido Recebido'] && !p['Data Pedido Completo']).length;
-            const baseTotal = comSLA + semEnvioFinal;
-
-            let html = '<div style="display:flex;flex-direction:column;gap:14px;padding:8px 0">';
-            top5.forEach(([causa, count], i) => {
-                const pct = baseTotal > 0 ? Math.round((count / baseTotal) * 100) : 0;
-                html += `
-                    <div>
-                        <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px">
-                            <span><strong>${i+1}.</strong> ${causa}</span>
-                            <span style="color:#666">${count} pedido(s) · ${pct}% do total</span>
-                        </div>
-                        <div style="background:#e5e7eb;border-radius:4px;height:10px;overflow:hidden">
-                            <div style="background:#ef4444;height:100%;width:${pct}%;border-radius:4px"></div>
-                        </div>
-                    </div>`;
+            if (window.chartPendenciasInstance) window.chartPendenciasInstance.destroy();
+            window.chartPendenciasInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{ data: data, backgroundColor: '#dc2626', borderRadius: 4 }]
+                },
+                options: PADRAO_CHART_OPTIONS('Quantidade de pedidos')
             });
-            html += '</div>';
-            container.innerHTML = html;
         }
 
         // ══ GRÁFICO: Top 10 Produtos Mais Vendidos (horizontal, por quantidade)
@@ -717,47 +756,30 @@
             const ctx = document.getElementById('chartTopProdutos');
             if (!ctx) return;
             const top10 = produtosVendidos.slice(0, 10);
-            // Ordem ascendente no array para o maior aparecer no topo da barra horizontal
             const ordenado = [...top10].reverse();
             const labels = ordenado.map(montaLabelProduto);
             const data = ordenado.map(p => p.qtdTotal);
 
             if (window.chartTopProdutosInstance) window.chartTopProdutosInstance.destroy();
+            const opts = PADRAO_CHART_OPTIONS('Quantidade vendida');
+            opts.plugins.tooltip.callbacks = {
+                title: (items) => ordenado[items[0].dataIndex].codigo,
+                afterTitle: (items) => ordenado[items[0].dataIndex].descricao
+            };
             window.chartTopProdutosInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: labels,
-                    datasets: [{ data: data, backgroundColor: '#10b981', borderRadius: 4 }]
+                    datasets: [{ data: data, backgroundColor: '#2563eb', borderRadius: 4 }]
                 },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                title: (items) => {
-                                    const idx = items[0].dataIndex;
-                                    return ordenado[idx].codigo;
-                                },
-                                afterTitle: (items) => {
-                                    const idx = items[0].dataIndex;
-                                    return ordenado[idx].descricao;
-                                }
-                            }
-                        }
-                    },
-                    scales: { x: { beginAtZero: true, title: { display: true, text: 'Quantidade vendida' } } }
-                }
+                options: opts
             });
         }
 
-        // ══ GRÁFICO: Pedidos por Unidade (Warehouse)
         // ══ GRÁFICO: Origem dos Produtos
-        // Agrega por QUANTIDADE DE PRODUTOS vendidos por armazém (não por nº de pedidos).
-        // Isso reflete de onde o estoque realmente saiu, métrica mais útil pro comercial
-        // do que simplesmente contar pedidos — um pedido grande de um armazém pesa o que deve.
+        // Mede APENAS percentual (%) de produtos expedidos por armazém — não quantidade.
+        // Reflete de onde o estoque realmente saiu; métrica mais útil pro comercial
+        // do que contar pedidos, já que um único pedido grande pode concentrar volume.
         function drawChartUnidade(){
             const ctx = document.getElementById('chartUnidade');
             if (!ctx) return;
@@ -773,31 +795,22 @@
             });
 
             const sorted = Object.entries(qtdPorWh).sort((a,b) => b[1]-a[1]);
-            const labels = sorted.map(s => s[0]);
-            const data = sorted.map(s => s[1]);
-            const percentuais = sorted.map(s => totalGeral > 0 ? Math.round((s[1]/totalGeral)*100) : 0);
+            const labels = sorted.map(s => s[0]).reverse();
+            const percentuais = sorted.map(s => totalGeral > 0 ? Math.round((s[1]/totalGeral)*100) : 0).reverse();
 
             if (window.chartUnidadeInstance) window.chartUnidadeInstance.destroy();
+            const opts = PADRAO_CHART_OPTIONS('% de produtos expedidos');
+            opts.scales.x.max = 100;
+            opts.scales.x.ticks.callback = (v) => v + '%';
+            opts.plugins.tooltip.callbacks = { label: (item) => `${item.parsed.x}%` };
+
             window.chartUnidadeInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: labels,
-                    datasets: [{ data: data, backgroundColor: '#8b5cf6', borderRadius: 4 }]
+                    datasets: [{ data: percentuais, backgroundColor: '#2563eb', borderRadius: 4 }]
                 },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: (item) => `${fmtNum(item.parsed.x)} un. (${percentuais[item.dataIndex]}%)`
-                            }
-                        }
-                    },
-                    scales: { x: { beginAtZero: true, title: { display: true, text: 'Quantidade de produtos' } } }
-                },
+                options: opts,
                 plugins: [{
                     id: 'pctLabels',
                     afterDatasetsDraw(chart) {
@@ -805,8 +818,8 @@
                         const meta = chart.getDatasetMeta(0);
                         meta.data.forEach((bar, i) => {
                             ctx.save();
-                            ctx.font = 'bold 12px Arial';
-                            ctx.fillStyle = '#5b21b6';
+                            ctx.font = '600 12px -apple-system, Arial';
+                            ctx.fillStyle = '#1e3a8a';
                             ctx.textAlign = 'left';
                             ctx.textBaseline = 'middle';
                             ctx.fillText(`${percentuais[i]}%`, bar.x + 8, bar.y);
@@ -816,8 +829,6 @@
                 }]
             });
         }
-
-        function fmtNum(n){ return Math.round(n).toLocaleString('pt-BR'); }
 
         function drawChart() {
             const ctx = document.getElementById('chartDias');
@@ -840,7 +851,9 @@
             const totalPedidos = Object.values(dias).reduce((a, b) => a + b, 0);
             const percentuais = Object.values(dias).map(v => totalPedidos > 0 ? Math.round((v / totalPedidos) * 100) : 0);
             
-            const colors = ['#9e9e9e', '#1976d2', '#1976d2', '#1976d2', '#ff9800', '#f44336', '#9e9e9e'];
+            // Cor única (azul) para os dias úteis — consistente com a paleta padrão.
+            // Fins de semana em tom mais claro só para indicar menor relevância operacional.
+            const colors = ['#93c5fd', '#2563eb', '#2563eb', '#2563eb', '#2563eb', '#2563eb', '#93c5fd'];
             const labels = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
             if (window.chartInstance) {
