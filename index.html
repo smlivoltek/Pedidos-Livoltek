@@ -24,6 +24,15 @@
             color: #666;
             font-size: 14px;
         }
+        .loading {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            color: #856404;
+            font-size: 13px;
+        }
         .cards { 
             display: grid; 
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
@@ -36,7 +45,7 @@
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.08);
             text-align: center;
-            border-left: 4px solid #ddd;
+            border-left: 4px solid #0066cc;
         }
         .card.vendedor { border-left-color: #c62828; }
         .card.analise { border-left-color: #e65100; }
@@ -181,8 +190,9 @@
         .obs-small {
             font-size: 12px;
             color: #666;
-            max-width: 200px;
+            max-width: 180px;
             word-wrap: break-word;
+            line-height: 1.3;
         }
     </style>
 </head>
@@ -193,18 +203,13 @@
             <p class="subtitle">Livoltek - Sales Management | Atualização diária</p>
         </div>
 
-        <div class="cards">
-            <div class="card vendedor">
-                <h3>Aguardando Vendedor</h3>
-                <div class="number" id="cardAguardando">0</div>
-            </div>
-            <div class="card analise">
-                <h3>Em Análise (SM)</h3>
-                <div class="number" id="cardAnalise">0</div>
-            </div>
-            <div class="card faturamento">
-                <h3>Enviado para Faturamento (PD)</h3>
-                <div class="number" id="cardFaturamento">0</div>
+        <div id="loadingMsg" class="loading">⏳ Carregando dados do CSV...</div>
+
+        <!-- CARD PRINCIPAL - TELA INICIAL -->
+        <div id="cardsMain" class="cards" style="margin-bottom: 30px; display: none;">
+            <div class="card">
+                <h3>Total de Pedidos</h3>
+                <div class="number" id="cardTotal">0</div>
             </div>
         </div>
 
@@ -237,6 +242,22 @@
         </div>
 
         <div id="tabAnalise" class="tab-content">
+            <!-- CARDS - APENAS NA ABA ANÁLISE -->
+            <div class="cards" style="margin-bottom: 30px;">
+                <div class="card vendedor">
+                    <h3>Aguardando Vendedor</h3>
+                    <div class="number" id="cardAguardando">0</div>
+                </div>
+                <div class="card analise">
+                    <h3>Em Análise (SM)</h3>
+                    <div class="number" id="cardAnalise">0</div>
+                </div>
+                <div class="card faturamento">
+                    <h3>Enviado para Faturamento (PD)</h3>
+                    <div class="number" id="cardFaturamento">0</div>
+                </div>
+            </div>
+
             <div class="chart-container">
                 <h3>Pedidos por Dia da Semana</h3>
                 <canvas id="chartDias" style="max-height: 400px;"></canvas>
@@ -245,9 +266,129 @@
     </div>
 
     <script>
-        const PEDIDOS_DATA = [{"KAM": "Leonardo Dib", "Nº DO PEDIDO": "LIVNEO526062", "CLIENTE": "NEOSOLAR ENERGIA LTDA", "Data Pedido Recebido": "19/05/2026", "Data Pedido Completo": "21/5/2026", "Data Envio Faturamento": "21/5/2026", "Quais Pendências?": "SM: Equipe operando com recursos reduzidos. Alterações de IPI no pedido."}, {"KAM": "Fabiam Lourenco", "Nº DO PEDIDO": "LIVLIL526064", "CLIENTE": "LILE GASTRONOMIA", "Data Pedido Recebido": "13/03/2026", "Data Pedido Completo": "", "Data Envio Faturamento": "", "Quais Pendências?": "KAM: produto sem estoque"}, {"KAM": "Leonardo Dib", "Nº DO PEDIDO": "LIVAMA526066", "CLIENTE": "AMARA NET ZERO BRASIL LTDA", "Data Pedido Recebido": "14/05/2026", "Data Pedido Completo": "22/5/2026", "Data Envio Faturamento": "22/5/2026", "Quais Pendências?": "KAM: Não tem estoque de todos os produtos"}, {"KAM": "Anna Julia", "Nº DO PEDIDO": "LIVGWM526070", "CLIENTE": "GWM BRASIL", "Data Pedido Recebido": "16/05/2026", "Data Pedido Completo": "", "Data Envio Faturamento": "", "Quais Pendências?": "KAM: Aguardando aprovação do cliente"}, {"KAM": "Beatriz Sales", "Nº DO PEDIDO": "LIVFOR526074", "CLIENTE": "FORTLEV ENERGIA SOLAR", "Data Pedido Recebido": "18/05/2026", "Data Pedido Completo": "20/5/2026", "Data Envio Faturamento": "", "Quais Pendências?": "SM: Verificação de documentação"}, {"KAM": "Kariny Maciel", "Nº DO PEDIDO": "LIVJOI526076", "CLIENTE": "JOINING ELETRO-ELÉTRICOS", "Data Pedido Recebido": "12/05/2026", "Data Pedido Completo": "19/5/2026", "Data Envio Faturamento": "19/5/2026", "Quais Pendências?": ""}, {"KAM": "Wilton Moura", "Nº DO PEDIDO": "LIVPRO526082", "CLIENTE": "PROJETOS MANAUS", "Data Pedido Recebido": "20/05/2026", "Data Pedido Completo": "", "Data Envio Faturamento": "", "Quais Pendências?": "KAM: Aguardando comprovante de pagamento"}, {"KAM": "Bruno Reis", "Nº DO PEDIDO": "LIVEMO526088", "CLIENTE": "E-MOBILITY SOLUTIONS", "Data Pedido Recebido": "15/05/2026", "Data Pedido Completo": "18/5/2026", "Data Envio Faturamento": "18/5/2026", "Quais Pendências?": "SM: Liberação de estoque"}, {"KAM": "Felipe Hanke", "Nº DO PEDIDO": "LIVELA526091", "CLIENTE": "ELÁTRICAS BRASIL", "Data Pedido Recebido": "17/05/2026", "Data Pedido Completo": "", "Data Envio Faturamento": "", "Quais Pendências?": "KAM: Aguardando documentação fiscal"}, {"KAM": "Mateus Armando", "Nº DO PEDIDO": "LIVDIS526095", "CLIENTE": "DISTRIBUIÇÃO BRASIL", "Data Pedido Recebido": "19/05/2026", "Data Pedido Completo": "21/5/2026", "Data Envio Faturamento": "21/5/2026", "Quais Pendências?": ""}, {"KAM": "Leonardo Dib", "Nº DO PEDIDO": "LIVNEO526098", "CLIENTE": "NEOSOLAR ENERGIA LTDA", "Data Pedido Recebido": "21/05/2026", "Data Pedido Completo": "", "Data Envio Faturamento": "", "Quais Pendências?": "KAM: Revisão de especificações técnicas"}, {"KAM": "Fabiam Lourenco", "Nº DO PEDIDO": "LIVELR526102", "CLIENTE": "ELETRA BRASIL", "Data Pedido Recebido": "14/05/2026", "Data Pedido Completo": "20/5/2026", "Data Envio Faturamento": "", "Quais Pendências?": "SM: Análise de crédito"}, {"KAM": "Kariny Maciel", "Nº DO PEDIDO": "LIVCOPEL526105", "CLIENTE": "COPEL", "Data Pedido Recebido": "13/05/2026", "Data Pedido Completo": "19/5/2026", "Data Envio Faturamento": "19/5/2026", "Quais Pendências?": ""}, {"KAM": "Beatriz Sales", "Nº DO PEDIDO": "LIVCOELBA526108", "CLIENTE": "COELBA", "Data Pedido Recebido": "16/05/2026", "Data Pedido Completo": "22/5/2026", "Data Envio Faturamento": "", "Quais Pendências?": "SM: Conferência de quantidades"}, {"KAM": "Wilton Moura", "Nº DO PEDIDO": "LIVSP526112", "CLIENTE": "SPTRANS", "Data Pedido Recebido": "18/05/2026", "Data Pedido Completo": "21/5/2026", "Data Envio Faturamento": "21/5/2026", "Quais Pendências?": "KAM: Confirmação de prazo de entrega"}, {"KAM": "Bruno Reis", "Nº DO PEDIDO": "LIVCINC526115", "CLIENTE": "CINCATARINA/ELETRA", "Data Pedido Recebido": "17/05/2026", "Data Pedido Completo": "", "Data Envio Faturamento": "", "Quais Pendências?": "SM: Validação de documentação"}, {"KAM": "Felipe Hanke", "Nº DO PEDIDO": "LIVGWM526118", "CLIENTE": "GWM BRASIL - MATRIZ", "Data Pedido Recebido": "20/05/2026", "Data Pedido Completo": "23/5/2026", "Data Envio Faturamento": "", "Quais Pendências?": "SM: Liberação gerencial"}, {"KAM": "Mateus Armando", "Nº DO PEDIDO": "LIVBRAS526121", "CLIENTE": "BRASCOM", "Data Pedido Recebido": "15/05/2026", "Data Pedido Completo": "19/5/2026", "Data Envio Faturamento": "19/5/2026", "Quais Pendências?": ""}, {"KAM": "Anna Julia", "Nº DO PEDIDO": "LIVPAL526125", "CLIENTE": "PALHETA ENGENHARIA", "Data Pedido Recebido": "21/05/2026", "Data Pedido Completo": "", "Data Envio Faturamento": "", "Quais Pendências?": "KAM: Aguardando orçamento de frete"}, {"KAM": "Leonardo Dib", "Nº DO PEDIDO": "LIVFOR526128", "CLIENTE": "FORTLEV ENERGIA SOLAR", "Data Pedido Recebido": "12/05/2026", "Data Pedido Completo": "18/5/2026", "Data Envio Faturamento": "18/5/2026", "Quais Pendências?": "SM: NF emitida com sucesso"}, {"KAM": "Fabiam Lourenco", "Nº DO PEDIDO": "LIVJOI526131", "CLIENTE": "JOINING ELETRO-ELÉTRICOS", "Data Pedido Recebido": "19/05/2026", "Data Pedido Completo": "21/5/2026", "Data Envio Faturamento": "", "Quais Pendências?": "SM: Aguardando comprovante de entrega"}, {"KAM": "Kariny Maciel", "Nº DO PEDIDO": "LIVPRO526135", "CLIENTE": "PROJETOS MANAUS", "Data Pedido Recebido": "14/05/2026", "Data Pedido Completo": "", "Data Envio Faturamento": "", "Quais Pendências?": "KAM: Cliente em análise de crédito"}, {"KAM": "Beatriz Sales", "Nº DO PEDIDO": "LIVEMO526138", "CLIENTE": "E-MOBILITY SOLUTIONS", "Data Pedido Recebido": "17/05/2026", "Data Pedido Completo": "20/5/2026", "Data Envio Faturamento": "20/5/2026", "Quais Pendências?": ""}, {"KAM": "Wilton Moura", "Nº DO PEDIDO": "LIVELA526142", "CLIENTE": "ELÁTRICAS BRASIL", "Data Pedido Recebido": "13/05/2026", "Data Pedido Completo": "19/5/2026", "Data Envio Faturamento": "19/5/2026", "Quais Pendências?": "KAM: Pedido processado com sucesso"}, {"KAM": "Bruno Reis", "Nº DO PEDIDO": "LIVDIS526145", "CLIENTE": "DISTRIBUIÇÃO BRASIL", "Data Pedido Recebido": "16/05/2026", "Data Pedido Completo": "", "Data Envio Faturamento": "", "Quais Pendências?": "SM: Análise de limites de crédito"}];
-
         let csvData = [];
+
+        // ===============================================
+        // FUNÇÕES DE PARSING CSV
+        // ===============================================
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            if (lines.length === 0) return [];
+
+            // Detecta o separador (tenta ; primeiro, depois ,)
+            const header = lines[0];
+            const separator = header.includes(';') ? ';' : ',';
+            
+            // Parse header
+            const headers = lines[0].split(separator).map(h => h.trim().toLowerCase());
+            
+            // Encontra índices das colunas necessárias
+            const colMap = {
+                po: headers.findIndex(h => h.includes('po') && h.includes('relacionado')),
+                customer: headers.findIndex(h => h.includes('customer') || h.includes('cliente')),
+                kam: headers.findIndex(h => h === 'kam'),
+                dataReceb: headers.findIndex(h => h.includes('data pedido recebido')),
+                dataCompl: headers.findIndex(h => h.includes('data pedido completo')),
+                dataEnvio: headers.findIndex(h => h.includes('data envio faturamento')),
+                pendencias: headers.findIndex(h => h.includes('quais') && h.includes('pendências'))
+            };
+
+            console.log('🔍 Colunas encontradas:', colMap);
+
+            const rows = [];
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                const cols = line.split(separator);
+                rows.push({
+                    po: cols[colMap.po]?.trim() || '',
+                    customer: cols[colMap.customer]?.trim() || '',
+                    kam: cols[colMap.kam]?.trim() || '',
+                    dataReceb: cols[colMap.dataReceb]?.trim() || '',
+                    dataCompl: cols[colMap.dataCompl]?.trim() || '',
+                    dataEnvio: cols[colMap.dataEnvio]?.trim() || '',
+                    pendencias: cols[colMap.pendencias]?.trim() || ''
+                });
+            }
+
+            return rows;
+        }
+
+        function fetchAndProcessCSV() {
+            const csvUrl = 'https://raw.githubusercontent.com/smlivoltek/Pedidos-Livoltek/main/pedidos.csv';
+
+            fetch(csvUrl)
+                .then(resp => {
+                    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                    return resp.text();
+                })
+                .then(csvText => {
+                    console.log('✅ CSV carregado');
+                    const rows = parseCSV(csvText);
+                    console.log(`📦 Linhas brutas: ${rows.length}`);
+                    
+                    processData(rows);
+                })
+                .catch(err => {
+                    console.error('❌ Erro ao carregar CSV:', err);
+                    document.getElementById('loadingMsg').innerHTML = 
+                        `⚠️ Erro ao carregar dados: ${err.message}. Tente F5.`;
+                });
+        }
+
+        function processData(rows) {
+            csvData = [];
+            const seen = new Set();
+
+            for (let row of rows) {
+                const po = row.po;
+                if (!po || !po.startsWith('LIV')) continue; // Valida PO
+                if (seen.has(po)) continue; // Pula duplicatas (já processou)
+
+                seen.add(po);
+
+                const receb = row.dataReceb;
+                const compl = row.dataCompl;
+                const envio = row.dataEnvio;
+
+                // Calcula SLAs
+                const slaRecebCompl = calcDaysBetween(receb, compl);
+                const slaComplEnvio = calcDaysBetween(compl, envio);
+
+                // Extrai observações
+                const obs = extractObservations(row.pendencias);
+
+                // Determina status
+                let status = '';
+                if (receb && !compl) {
+                    status = 'PENDÊNCIA DO VENDEDOR';
+                } else if (receb && compl && !envio) {
+                    status = 'EM ANÁLISE (SM)';
+                } else if (receb && compl && envio) {
+                    status = 'ENVIADO PARA FATURAMENTO (PD)';
+                }
+
+                csvData.push({
+                    KAM: row.kam,
+                    'Nº DO PEDIDO': po,
+                    CLIENTE: row.customer,
+                    'Data Pedido Recebido': receb,
+                    'Data Pedido Completo': compl,
+                    'Data Envio Faturamento': envio,
+                    'SLA Receb→Compl': slaRecebCompl,
+                    'Obs Pendências': obs.kam,
+                    'SLA Compl→Envio': slaComplEnvio,
+                    'Obs SM': obs.sm,
+                    Status: status
+                });
+            }
+
+            console.log(`✅ Pedidos únicos processados: ${csvData.length}`);
+            document.getElementById('loadingMsg').style.display = 'none';
+            document.getElementById('cardsMain').style.display = 'grid';
+            updateUI();
+        }
 
         function calcDaysBetween(data1Str, data2Str) {
             if (!data1Str || !data2Str) return '';
@@ -264,49 +405,25 @@
             }
         }
 
-        function extractObservation(texto, tipo) {
-            if (!texto) return '';
-            const partes = texto.split(tipo + ':');
-            if (partes.length < 2) return '';
-            let obs = partes[1].split('KAM:')[0].split('SM:')[0].trim();
-            return obs.substring(0, 60) + (obs.length > 60 ? '...' : '');
-        }
+        function extractObservations(texto) {
+            if (!texto) return { kam: '', sm: '' };
+            
+            const partes = texto.split('|');
+            let kam = '';
+            let sm = '';
 
-        function initData() {
-            csvData = [];
-            const seen = new Set();
-
-            for (let pedido of PEDIDOS_DATA) {
-                const po = pedido['Nº DO PEDIDO'];
-                
-                if (po && !seen.has(po)) {
-                    seen.add(po);
-                    
-                    const receb = pedido['Data Pedido Recebido'];
-                    const compl = pedido['Data Pedido Completo'];
-                    const envio = pedido['Data Envio Faturamento'];
-
-                    // Calcula SLAs
-                    pedido.SLA_Receb_Compl = calcDaysBetween(receb, compl);
-                    pedido.SLA_Compl_Envio = calcDaysBetween(compl, envio);
-
-                    // Extrai observações
-                    pedido.Obs_Pendencias = extractObservation(pedido['Quais Pendências?'], 'KAM');
-                    pedido.Obs_SM = extractObservation(pedido['Quais Pendências?'], 'SM');
-
-                    if (receb && !compl) {
-                        pedido.Status = 'PENDÊNCIA DO VENDEDOR';
-                    } else if (receb && compl && !envio) {
-                        pedido.Status = 'EM ANÁLISE (SM)';
-                    } else if (receb && compl && envio) {
-                        pedido.Status = 'ENVIADO PARA FATURAMENTO (PD)';
-                    }
-
-                    csvData.push(pedido);
+            for (let parte of partes) {
+                if (parte.includes('KAM:')) {
+                    kam = parte.replace('KAM:', '').trim();
+                } else if (parte.includes('SM:')) {
+                    sm = parte.replace('SM:', '').trim();
                 }
             }
 
-            updateUI();
+            return {
+                kam: kam.substring(0, 50) + (kam.length > 50 ? '...' : ''),
+                sm: sm.substring(0, 50) + (sm.length > 50 ? '...' : '')
+            };
         }
 
         function updateUI() {
@@ -316,10 +433,12 @@
                 return;
             }
 
+            const total = csvData.length;
             const aguardando = csvData.filter(p => p.Status === 'PENDÊNCIA DO VENDEDOR').length;
             const analise = csvData.filter(p => p.Status === 'EM ANÁLISE (SM)').length;
             const faturamento = csvData.filter(p => p.Status === 'ENVIADO PARA FATURAMENTO (PD)').length;
 
+            document.getElementById('cardTotal').textContent = total;
             document.getElementById('cardAguardando').textContent = aguardando;
             document.getElementById('cardAnalise').textContent = analise;
             document.getElementById('cardFaturamento').textContent = faturamento;
@@ -346,7 +465,7 @@
 
             if (filtered.length === 0) {
                 document.getElementById('tableContainer').innerHTML = 
-                    '<div class="empty-state">Nenhum pedido encontrado com os filtros selecionados.</div>';
+                    '<div class="empty-state">Nenhum pedido encontrado.</div>';
                 return;
             }
 
@@ -364,11 +483,11 @@
                 html += `<td>${p.CLIENTE || '-'}</td>`;
                 html += `<td>${p['Data Pedido Recebido'] || '-'}</td>`;
                 html += `<td>${p['Data Pedido Completo'] || '-'}</td>`;
-                html += `<td class="sla">${p.SLA_Receb_Compl !== '' ? p.SLA_Receb_Compl + 'd' : '-'}</td>`;
-                html += `<td class="obs-small">${p.Obs_Pendencias || '-'}</td>`;
+                html += `<td class="sla">${p['SLA Receb→Compl'] !== '' ? p['SLA Receb→Compl'] + 'd' : '-'}</td>`;
+                html += `<td class="obs-small">${p['Obs Pendências'] || '-'}</td>`;
                 html += `<td>${p['Data Envio Faturamento'] || '-'}</td>`;
-                html += `<td class="sla">${p.SLA_Compl_Envio !== '' ? p.SLA_Compl_Envio + 'd' : '-'}</td>`;
-                html += `<td class="obs-small">${p.Obs_SM || '-'}</td>`;
+                html += `<td class="sla">${p['SLA Compl→Envio'] !== '' ? p['SLA Compl→Envio'] + 'd' : '-'}</td>`;
+                html += `<td class="obs-small">${p['Obs SM'] || '-'}</td>`;
                 html += `<td><span class="status ${statusClass}">${p.Status || '-'}</span></td>`;
                 html += '</tr>';
             });
@@ -445,7 +564,8 @@
             });
         }
 
-        document.addEventListener('DOMContentLoaded', initData);
+        // Carrega dados ao inicializar
+        document.addEventListener('DOMContentLoaded', fetchAndProcessCSV);
     </script>
 </body>
 </html>
