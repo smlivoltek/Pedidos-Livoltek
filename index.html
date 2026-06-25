@@ -439,7 +439,7 @@
                 const slaComplEnvio = calcDaysBetween(compl, envio);
 
                 // Extrai observações
-                const obs = extractObservations(row.pendencias);
+                const obsPendencias = extractObservations(row.pendencias);
 
                 // Determina status
                 let status = '';
@@ -459,9 +459,8 @@
                     'Data Pedido Completo': compl,
                     'Data Envio Faturamento': envio,
                     'SLA Receb→Compl': slaRecebCompl,
-                    'Obs Pendências': obs.kam || obs.sm,
+                    'Obs Pendências': obsPendencias,
                     'SLA Compl→Envio': slaComplEnvio,
-                    'Obs SM': obs.sm,
                     Status: status,
                     Warehouse: row.warehouse,
                     Diretoria: getDiretoria(row.kam)
@@ -489,25 +488,10 @@
             }
         }
 
+        // Pendências: texto cru do campo, sem separação por KAM/SM
         function extractObservations(texto) {
-            if (!texto) return { kam: '', sm: '' };
-            
-            const partes = texto.split('|');
-            let kam = '';
-            let sm = '';
-
-            for (let parte of partes) {
-                if (parte.includes('KAM:')) {
-                    kam = parte.replace('KAM:', '').trim();
-                } else if (parte.includes('SM:')) {
-                    sm = parte.replace('SM:', '').trim();
-                }
-            }
-
-            return {
-                kam: kam.substring(0, 50) + (kam.length > 50 ? '...' : ''),
-                sm: sm.substring(0, 50) + (sm.length > 50 ? '...' : '')
-            };
+            if (!texto) return '';
+            return texto.trim();
         }
 
         function updateUI() {
