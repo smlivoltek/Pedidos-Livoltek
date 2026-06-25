@@ -264,18 +264,16 @@
                     <h3>Total de Pedidos Únicos</h3>
                     <div class="number" id="cardTotalAnalise">0</div>
                 </div>
-                <div class="card" id="cardSLAVendedorClick" onclick="toggleListaSemEnvioFinal()" style="cursor:pointer">
-                    <h3>Pedidos com Pendências Enviados para SM <span style="font-size:11px;opacity:.6">(clique para ver)</span></h3>
+                <div class="card">
+                    <h3>Pedidos com Pendências Enviados para SM</h3>
                     <div class="number" id="cardSLAVendedor">0</div>
                 </div>
             </div>
 
-            <!-- Lista expansível: pedidos sem 'Envio Final à SM' (Data Pedido Completo vazia) -->
-            <div id="listaSemEnvioFinal" style="display:none;margin-bottom:24px">
-                <div class="chart-container">
-                    <h3>Pedidos sem Envio Final à SM</h3>
-                    <div id="tabelaSemEnvioFinal"></div>
-                </div>
+            <!-- Top 5 Pendências que mais causam aumento no SLA -->
+            <div class="chart-container" style="margin-bottom:24px">
+                <h3>Top 5 Pendências que Mais Aumentam o SLA</h3>
+                <div id="top5Pendencias"></div>
             </div>
 
             <!-- Distribuição por Status — gráfico mais importante -->
@@ -574,9 +572,10 @@
             const faturamento = csvData.filter(p => p.Status === 'ENVIADO PARA FATURAMENTO (PD)').length;
 
             // Novas métricas para aba Análise
-            // "Pendências enviadas para SM" = pedidos sem Envio Final à SM (Data Pedido Completo vazia)
-            const pedidosSemEnvioFinal = csvData.filter(p => p['Data Pedido Recebido'] && !p['Data Pedido Completo']);
-            const slaVendedor = pedidosSemEnvioFinal.length;
+            // Soma dos dois indicadores: pedidos com SLA>0 dias + pedidos ainda sem Envio Final à SM
+            const comSLA = csvData.filter(p => p['SLA Receb→Compl'] > 0).length;
+            const semEnvioFinal = csvData.filter(p => p['Data Pedido Recebido'] && !p['Data Pedido Completo']).length;
+            const slaVendedor = comSLA + semEnvioFinal;
 
             // Tela principal
             document.getElementById('cardTotal').textContent = total;
@@ -652,11 +651,61 @@
             if (tab === 'analise') {
                 setTimeout(() => {
                     drawChart();
+                    renderTop5Pendencias();
                     drawChartStatus();
                     drawChartTopProdutos();
                     drawChartUnidade();
                 }, 100);
             }
+        }
+
+        // ══ Top 5 Pendências que mais aumentam o SLA
+        // Decompõe pendências combinadas (separadas por vírgula, ex: "Falta comprovante, Cliente sem cadastro")
+        // e soma o SLA (dias) atribuído a cada causa individualmente.
+        function renderTop5Pendencias(){
+            const container = document.getElementById('top5Pendencias');
+            if (!container) return;
+
+            const causasSLA = {};
+            csvData.forEach(p => {
+                const sla = p['SLA Receb→Compl'];
+                const pend = p['Obs Pendências'];
+                if (!pend || !sla || sla <= 0) return;
+                const causas = pend.split(',').map(c => c.trim()).filter(Boolean);
+                causas.forEach(causa => {
+                    if (!causasSLA[causa]) causasSLA[causa] = { sla: 0, count: 0 };
+                    causasSLA[causa].sla += sla;
+                    causasSLA[causa].count += 1;
+                });
+            });
+
+            const top5 = Object.entries(causasSLA)
+                .sort((a,b) => b[1].sla - a[1].sla)
+                .slice(0, 5);
+
+            if (top5.length === 0) {
+                container.innerHTML = '<div class="empty-state">Nenhuma pendência com SLA registrado.</div>';
+                return;
+            }
+
+            const maxSLA = top5[0][1].sla;
+            let html = '<div style="display:flex;flex-direction:column;gap:14px;padding:8px 0">';
+            top5.forEach(([causa, v], i) => {
+                const pct = Math.round((v.sla / maxSLA) * 100);
+                const media = (v.sla / v.count).toFixed(1);
+                html += `
+                    <div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px">
+                            <span><strong>${i+1}.</strong> ${causa}</span>
+                            <span style="color:#666">${v.sla}d total · ${v.count} pedido(s) · média ${media}d</span>
+                        </div>
+                        <div style="background:#e5e7eb;border-radius:4px;height:10px;overflow:hidden">
+                            <div style="background:#ef4444;height:100%;width:${pct}%;border-radius:4px"></div>
+                        </div>
+                    </div>`;
+            });
+            html += '</div>';
+            container.innerHTML = html;
         }
 
         // ══ GRÁFICO: Distribuição por Status (horizontal, mais importante)
@@ -697,41 +746,6 @@
             if (!codigoOpaco) return p.codigo;
             const descCurta = p.descricao.length > 32 ? p.descricao.slice(0,32)+'…' : p.descricao;
             return `${p.codigo} — ${descCurta}`;
-        }
-
-        // ══ Lista expansível: pedidos sem Envio Final à SM
-        let listaSemEnvioFinalAberta = false;
-        function toggleListaSemEnvioFinal(){
-            listaSemEnvioFinalAberta = !listaSemEnvioFinalAberta;
-            const painel = document.getElementById('listaSemEnvioFinal');
-            if (!listaSemEnvioFinalAberta) {
-                painel.style.display = 'none';
-                return;
-            }
-            painel.style.display = 'block';
-
-            const pedidos = csvData.filter(p => p['Data Pedido Recebido'] && !p['Data Pedido Completo']);
-            const container = document.getElementById('tabelaSemEnvioFinal');
-
-            if (pedidos.length === 0) {
-                container.innerHTML = '<div class="empty-state">Nenhum pedido pendente de Envio Final à SM.</div>';
-                return;
-            }
-
-            let html = '<table><tr><th>KAM</th><th>Nº Pedido</th><th>Primeiro Envio à SM</th><th>Pendências do Pedido</th><th>Status</th></tr>';
-            pedidos.forEach(p => {
-                const statusClass = p.Status === 'PENDÊNCIA DO VENDEDOR' ? 'status-vendedor' :
-                                   p.Status === 'EM ANÁLISE (SM)' ? 'status-analise' : 'status-faturamento';
-                html += '<tr>';
-                html += `<td>${p.KAM || '-'}</td>`;
-                html += `<td><strong>${p['Nº DO PEDIDO'] || '-'}</strong></td>`;
-                html += `<td>${p['Data Pedido Recebido'] || '-'}</td>`;
-                html += `<td class="obs-small">${p['Obs Pendências'] || '-'}</td>`;
-                html += `<td><span class="status ${statusClass}">${p.Status || '-'}</span></td>`;
-                html += '</tr>';
-            });
-            html += '</table>';
-            container.innerHTML = html;
         }
 
         function drawChartTopProdutos(){
