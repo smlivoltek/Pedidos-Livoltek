@@ -209,6 +209,31 @@
         @media (max-width: 900px) {
             .row-2col { grid-template-columns: 1fr; }
         }
+
+        /* ══ RESPONSIVO MOBILE (≤600px) ══ */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            h1 { font-size: 22px; }
+            .cards { grid-template-columns: 1fr; gap: 12px; }
+            .card { padding: 16px; }
+            .card .number { font-size: 32px; }
+            .tabs { gap: 4px; }
+            .tab-btn { padding: 10px 12px; font-size: 13px; }
+
+            /* Filtros: empilhar em coluna, ocupar largura total */
+            .filters { flex-direction: column; align-items: stretch; gap: 12px; }
+            .filter-group { flex-direction: column; align-items: stretch; gap: 4px; }
+            .filter-group label { font-size: 13px; }
+            .filter-group select,
+            .filter-group input { width: 100%; min-width: 0 !important; }
+
+            /* Tabela: fonte menor e padding reduzido para caber mais em tela estreita */
+            th, td { padding: 8px 6px; font-size: 12px; }
+            .obs-small { max-width: 120px; font-size: 11px; }
+
+            .chart-container { padding: 14px 16px; }
+            .chart-container h3 { font-size: 14px; }
+        }
         .sla { 
             text-align: center;
             font-weight: 600;
