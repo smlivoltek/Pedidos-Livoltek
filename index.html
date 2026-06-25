@@ -205,11 +205,23 @@
 
         <div id="loadingMsg" class="loading">⏳ Carregando dados do CSV...</div>
 
-        <!-- CARD PRINCIPAL - TELA INICIAL -->
+        <!-- CARDS PRINCIPAIS - TELA INICIAL -->
         <div id="cardsMain" class="cards" style="margin-bottom: 30px; display: none;">
             <div class="card">
                 <h3>Total de Pedidos</h3>
                 <div class="number" id="cardTotal">0</div>
+            </div>
+            <div class="card vendedor">
+                <h3>Aguardando Vendedor</h3>
+                <div class="number" id="cardAguardando">0</div>
+            </div>
+            <div class="card analise">
+                <h3>Em Análise (SM)</h3>
+                <div class="number" id="cardAnalise">0</div>
+            </div>
+            <div class="card faturamento">
+                <h3>Enviado para Faturamento (PD)</h3>
+                <div class="number" id="cardFaturamento">0</div>
             </div>
         </div>
 
@@ -242,19 +254,19 @@
         </div>
 
         <div id="tabAnalise" class="tab-content">
-            <!-- CARDS - APENAS NA ABA ANÁLISE -->
+            <!-- CARDS - NOVOS INDICADORES NA ABA ANÁLISE -->
             <div class="cards" style="margin-bottom: 30px;">
-                <div class="card vendedor">
-                    <h3>Aguardando Vendedor</h3>
-                    <div class="number" id="cardAguardando">0</div>
+                <div class="card">
+                    <h3>Total de Pedidos Únicos</h3>
+                    <div class="number" id="cardTotalAnalise">0</div>
                 </div>
-                <div class="card analise">
-                    <h3>Em Análise (SM)</h3>
-                    <div class="number" id="cardAnalise">0</div>
+                <div class="card">
+                    <h3>SLA Vendedor > 0 dias</h3>
+                    <div class="number" id="cardSLAVendedor">0</div>
                 </div>
-                <div class="card faturamento">
-                    <h3>Enviado para Faturamento (PD)</h3>
-                    <div class="number" id="cardFaturamento">0</div>
+                <div class="card">
+                    <h3>SLA SM > 1 dia</h3>
+                    <div class="number" id="cardSlaSM">0</div>
                 </div>
             </div>
 
@@ -438,10 +450,20 @@
             const analise = csvData.filter(p => p.Status === 'EM ANÁLISE (SM)').length;
             const faturamento = csvData.filter(p => p.Status === 'ENVIADO PARA FATURAMENTO (PD)').length;
 
+            // Novas métricas para aba Análise
+            const slaVendedor = csvData.filter(p => p['SLA Receb→Compl'] > 0).length;
+            const slaSM = csvData.filter(p => p['SLA Compl→Envio'] > 1).length;
+
+            // Tela principal
             document.getElementById('cardTotal').textContent = total;
             document.getElementById('cardAguardando').textContent = aguardando;
             document.getElementById('cardAnalise').textContent = analise;
             document.getElementById('cardFaturamento').textContent = faturamento;
+
+            // Aba Análise
+            document.getElementById('cardTotalAnalise').textContent = total;
+            document.getElementById('cardSLAVendedor').textContent = slaVendedor;
+            document.getElementById('cardSlaSM').textContent = slaSM;
 
             const kams = [...new Set(csvData.map(p => p.KAM).filter(Boolean))].sort();
             const kamSelect = document.getElementById('filterKAM');
