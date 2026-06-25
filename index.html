@@ -233,6 +233,10 @@
         <div id="tabPedidos" class="tab-content active">
             <div class="filters">
                 <div class="filter-group">
+                    <label>Cliente:</label>
+                    <input type="text" id="filterCliente" placeholder="Buscar cliente..." oninput="renderTable()" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;min-width:200px">
+                </div>
+                <div class="filter-group">
                     <label>KAM:</label>
                     <select id="filterKAM" onchange="renderTable()">
                         <option value="">Todos</option>
@@ -472,11 +476,13 @@
         function renderTable() {
             const kamFilter = document.getElementById('filterKAM').value;
             const statusFilter = document.getElementById('filterStatus').value;
+            const clienteFilter = (document.getElementById('filterCliente')?.value || '').trim().toLowerCase();
 
             let filtered = csvData.filter(p => {
                 const kamOk = !kamFilter || p.KAM === kamFilter;
                 const statusOk = !statusFilter || p.Status === statusFilter;
-                return kamOk && statusOk;
+                const clienteOk = !clienteFilter || (p.CLIENTE || '').toLowerCase().includes(clienteFilter);
+                return kamOk && statusOk && clienteOk;
             });
 
             if (filtered.length === 0) {
