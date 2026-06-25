@@ -278,8 +278,8 @@
 
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
                 <div class="chart-container">
-                    <h3>Pedidos por Diretoria</h3>
-                    <canvas id="chartDiretoria" style="max-height: 320px;"></canvas>
+                    <h3>Top 10 Produtos Mais Vendidos</h3>
+                    <canvas id="chartTopProdutos" style="max-height: 320px;"></canvas>
                 </div>
                 <div class="chart-container">
                     <h3>Pedidos por Armazém</h3>
@@ -371,7 +371,10 @@
                 dataCompl: headers.findIndex(h => h.includes('data pedido completo')),
                 dataEnvio: headers.findIndex(h => h.includes('data envio faturamento')),
                 pendencias: headers.findIndex(h => h.includes('quais') && (h.includes('pend') || h.includes('end'))),
-                warehouse: headers.findIndex(h => h.includes('warehouse'))
+                warehouse: headers.findIndex(h => h.includes('warehouse')),
+                codProduto: headers.findIndex(h => h.includes('código') && h.includes('produto') || h.includes('codigo produto')),
+                descProduto: headers.findIndex(h => h === 'descrição' || h === 'descricao'),
+                qtd: headers.findIndex(h => h.includes('qtdade') || h === 'qtd')
             };
 
             console.log('🔍 Colunas encontradas:', colMap);
@@ -390,7 +393,10 @@
                     dataCompl: cols[colMap.dataCompl]?.trim() || '',
                     dataEnvio: cols[colMap.dataEnvio]?.trim() || '',
                     pendencias: cols[colMap.pendencias]?.trim() || '',
-                    warehouse: cols[colMap.warehouse]?.trim() || ''
+                    warehouse: cols[colMap.warehouse]?.trim() || '',
+                    codProduto: cols[colMap.codProduto]?.trim() || '',
+                    descProduto: cols[colMap.descProduto]?.trim() || '',
+                    qtd: parseFloat((cols[colMap.qtd]||'0').replace(',','.')) || 0
                 });
             }
 
@@ -419,9 +425,26 @@
                 });
         }
 
+        let produtosVendidos = []; // {codigo, descricao, qtdTotal} — Top 10 mais vendidos
+
         function processData(rows) {
             csvData = [];
             const seen = new Set();
+
+            // Agregação de produtos: soma qtd por código, considerando TODAS as linhas
+            // (um PO pode ter vários itens em linhas separadas, então não dedupar aqui)
+            const prodMap = {};
+            rows.forEach(row => {
+                const po = row.po;
+                if (!po || !po.startsWith('LIV')) return;
+                const cod = row.codProduto;
+                if (!cod) return;
+                if (!prodMap[cod]) {
+                    prodMap[cod] = { codigo: cod, descricao: row.descProduto || cod, qtdTotal: 0 };
+                }
+                prodMap[cod].qtdTotal += row.qtd;
+            });
+            produtosVendidos = Object.values(prodMap).sort((a,b) => b.qtdTotal - a.qtdTotal);
 
             for (let row of rows) {
                 const po = row.po;
@@ -584,7 +607,7 @@
                 setTimeout(() => {
                     drawChart();
                     drawChartStatus();
-                    drawChartDiretoria();
+                    drawChartTopProdutos();
                     drawChartUnidade();
                     drawChartTendencia();
                 }, 100);
@@ -620,32 +643,39 @@
             });
         }
 
-        // ══ GRÁFICO: Pedidos por Diretoria (horizontal)
-        function drawChartDiretoria(){
-            const ctx = document.getElementById('chartDiretoria');
+        // ══ GRÁFICO: Top 10 Produtos Mais Vendidos (horizontal, por quantidade)
+        function drawChartTopProdutos(){
+            const ctx = document.getElementById('chartTopProdutos');
             if (!ctx) return;
-            const counts = {};
-            csvData.forEach(p => {
-                const d = p.Diretoria || 'Não mapeado';
-                counts[d] = (counts[d] || 0) + 1;
-            });
-            const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
-            const labels = sorted.map(s => s[0]);
-            const data = sorted.map(s => s[1]);
+            const top10 = produtosVendidos.slice(0, 10);
+            // Ordem ascendente no array para o maior aparecer no topo da barra horizontal
+            const ordenado = [...top10].reverse();
+            const labels = ordenado.map(p => p.descricao.length > 40 ? p.descricao.slice(0,40)+'…' : p.descricao);
+            const data = ordenado.map(p => p.qtdTotal);
 
-            if (window.chartDiretoriaInstance) window.chartDiretoriaInstance.destroy();
-            window.chartDiretoriaInstance = new Chart(ctx, {
+            if (window.chartTopProdutosInstance) window.chartTopProdutosInstance.destroy();
+            window.chartTopProdutosInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: labels,
-                    datasets: [{ data: data, backgroundColor: '#3b82f6', borderRadius: 4 }]
+                    datasets: [{ data: data, backgroundColor: '#10b981', borderRadius: 4 }]
                 },
                 options: {
                     indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: true,
-                    plugins: { legend: { display: false } },
-                    scales: { x: { beginAtZero: true } }
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                title: (items) => {
+                                    const idx = items[0].dataIndex;
+                                    return ordenado[idx].codigo;
+                                }
+                            }
+                        }
+                    },
+                    scales: { x: { beginAtZero: true, title: { display: true, text: 'Quantidade vendida' } } }
                 }
             });
         }
