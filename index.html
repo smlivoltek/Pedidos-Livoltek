@@ -233,8 +233,8 @@
         <div id="tabPedidos" class="tab-content active">
             <div class="filters">
                 <div class="filter-group">
-                    <label>Cliente:</label>
-                    <input type="text" id="filterCliente" placeholder="Buscar cliente..." oninput="renderTable()" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;min-width:200px">
+                    <label>Pedido:</label>
+                    <input type="text" id="filterPedido" placeholder="Buscar nº do pedido..." oninput="renderTable()" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;min-width:200px">
                 </div>
                 <div class="filter-group">
                     <label>KAM:</label>
@@ -547,13 +547,13 @@
         function renderTable() {
             const kamFilter = document.getElementById('filterKAM').value;
             const statusFilter = document.getElementById('filterStatus').value;
-            const clienteFilter = (document.getElementById('filterCliente')?.value || '').trim().toLowerCase();
+            const pedidoFilter = (document.getElementById('filterPedido')?.value || '').trim().toLowerCase();
 
             let filtered = csvData.filter(p => {
                 const kamOk = !kamFilter || p.KAM === kamFilter;
                 const statusOk = !statusFilter || p.Status === statusFilter;
-                const clienteOk = !clienteFilter || (p.CLIENTE || '').toLowerCase().includes(clienteFilter);
-                return kamOk && statusOk && clienteOk;
+                const pedidoOk = !pedidoFilter || (p['Nº DO PEDIDO'] || '').toLowerCase().includes(pedidoFilter);
+                return kamOk && statusOk && pedidoOk;
             });
 
             if (filtered.length === 0) {
@@ -563,7 +563,7 @@
             }
 
             let html = '<table><tr>';
-            html += '<th>KAM</th><th>Nº Pedido</th><th>Cliente</th><th>Receb.</th><th>Completo</th>';
+            html += '<th>KAM</th><th>Nº Pedido</th><th>Receb.</th><th>Completo</th>';
             html += '<th>SLA</th><th>Obs Pendências</th>';
             html += '<th>Envio PD</th><th>Status</th></tr>';
 
@@ -573,7 +573,6 @@
                 html += '<tr>';
                 html += `<td>${p.KAM || '-'}</td>`;
                 html += `<td><strong>${p['Nº DO PEDIDO'] || '-'}</strong></td>`;
-                html += `<td>${p.CLIENTE || '-'}</td>`;
                 html += `<td>${p['Data Pedido Recebido'] || '-'}</td>`;
                 html += `<td>${p['Data Pedido Completo'] || '-'}</td>`;
                 html += `<td class="sla">${p['SLA Receb→Compl'] !== '' ? p['SLA Receb→Compl'] + 'd' : '-'}</td>`;
