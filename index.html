@@ -109,9 +109,23 @@
             padding: 12px 15px;
             border-bottom: 1px solid #ecf0f1;
             font-size: 13px;
+            word-wrap: break-word;
+            white-space: normal;
         }
         tr:hover { background: #f9fafb; }
-        .status-incompleto {
+        .has-kam {
+            background: #fff3cd;
+            border-left: 3px solid #f39c12;
+        }
+        .has-sm {
+            background: #f0f8ff;
+            border-left: 3px solid #3498db;
+        }
+        .has-both {
+            background: #fadbd8;
+            border-left: 3px solid #e74c3c;
+            font-weight: 500;
+        }
             background: #fadbd8;
             color: #e74c3c;
             padding: 4px 10px;
@@ -214,7 +228,7 @@
             </div>
             <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-top: 20px;">
                 <h3 style="margin-bottom: 20px; color: #2c3e50;">Pedidos por Dia da Semana</h3>
-                <canvas id="chart-dias" style="max-height: 300px;"></canvas>
+                <canvas id="chart-dias" style="max-height: 400px;"></canvas>
                 <div style="margin-top: 20px; padding: 15px; background: #f9fafb; border-radius: 6px; border-left: 4px solid #3498db;">
                     <h4 style="margin-bottom: 10px; color: #2c3e50; font-size: 14px;">Legenda de Cores:</h4>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 13px;">
@@ -390,6 +404,12 @@
                 const statusClass = getStatusClass(row._status);
                 const justificativaSM = extractJustificativaSM(row['Quais Pendências?']);
                 const kamNote = extractKAMNote(row['Quais Pendências?']);
+                
+                // Determine highlighting
+                const temKAM = kamNote !== '--';
+                const temSM = justificativaSM !== '--';
+                const highlightClass = (temKAM && temSM) ? 'has-both' : temKAM ? 'has-kam' : temSM ? 'has-sm' : '';
+                
                 html += `<tr>
                     <td>${row['KAM'] || '--'}</td>
                     <td><strong>${row['Nº DO PEDIDO']}</strong></td>
@@ -397,10 +417,10 @@
                     <td>${row['Data Pedido Recebido'] || '--'}</td>
                     <td>${row['Data Pedido Completo'] || '--'}</td>
                     <td>${getSLARecebCompleto(row)}</td>
-                    <td>${kamNote}</td>
+                    <td class="${highlightClass}">${kamNote}</td>
                     <td>${row['Data Envio Faturamento'] || '--'}</td>
                     <td>${getSLACompletoEnvio(row)}</td>
-                    <td>${justificativaSM}</td>
+                    <td class="${highlightClass}">${justificativaSM}</td>
                     <td><span class="${statusClass}">${row._status}</span></td>
                 </tr>`;
             });
