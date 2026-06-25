@@ -276,12 +276,6 @@
                 <div id="top5Pendencias"></div>
             </div>
 
-            <!-- Distribuição por Status — gráfico mais importante -->
-            <div class="chart-container" style="margin-bottom:24px">
-                <h3>Distribuição por Status</h3>
-                <canvas id="chartStatus" style="max-height: 280px;"></canvas>
-            </div>
-
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
                 <div class="chart-container">
                     <h3>Top 10 Produtos Mais Vendidos</h3>
@@ -652,7 +646,6 @@
                 setTimeout(() => {
                     drawChart();
                     renderTop5Pendencias();
-                    drawChartStatus();
                     drawChartTopProdutos();
                     drawChartUnidade();
                 }, 100);
@@ -707,64 +700,6 @@
             });
             html += '</div>';
             container.innerHTML = html;
-        }
-
-        // ══ GRÁFICO: Distribuição por Status (horizontal, mais importante)
-        function drawChartStatus(){
-            const ctx = document.getElementById('chartStatus');
-            if (!ctx) return;
-            const enviado = csvData.filter(p => p.Status === 'ENVIADO PARA FATURAMENTO (PD)').length;
-            const pendComercial = csvData.filter(p => p.Status === 'PENDÊNCIA DO VENDEDOR').length;
-            const analiseSM = csvData.filter(p => p.Status === 'EM ANÁLISE (SM)').length;
-            const total = enviado + pendComercial + analiseSM;
-
-            const pctEnviado = total > 0 ? Math.round((enviado/total)*100) : 0;
-            const pctPend = total > 0 ? Math.round((pendComercial/total)*100) : 0;
-            const pctAnalise = total > 0 ? Math.round((analiseSM/total)*100) : 0;
-            const percentuais = [pctEnviado, pctPend, pctAnalise];
-
-            if (window.chartStatusInstance) window.chartStatusInstance.destroy();
-            window.chartStatusInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['Enviado para PD', 'Pendência Comercial', 'Em Análise SM'],
-                    datasets: [{
-                        data: percentuais,
-                        backgroundColor: ['#16a34a', '#dc2626', '#f59e0b'],
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: (item) => `${item.parsed.x}%`
-                            }
-                        }
-                    },
-                    scales: { x: { beginAtZero: true, max: 100, ticks: { callback: (v) => v + '%' } } }
-                },
-                plugins: [{
-                    id: 'statusPctLabels',
-                    afterDatasetsDraw(chart) {
-                        const ctx = chart.ctx;
-                        const meta = chart.getDatasetMeta(0);
-                        meta.data.forEach((bar, i) => {
-                            ctx.save();
-                            ctx.font = 'bold 12px Arial';
-                            ctx.fillStyle = '#374151';
-                            ctx.textAlign = 'left';
-                            ctx.textBaseline = 'middle';
-                            ctx.fillText(`${percentuais[i]}%`, bar.x + 8, bar.y);
-                            ctx.restore();
-                        });
-                    }
-                }]
-            });
         }
 
         // ══ GRÁFICO: Top 10 Produtos Mais Vendidos (horizontal, por quantidade)
