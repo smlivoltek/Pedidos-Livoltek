@@ -303,21 +303,47 @@
         let csvData = [];
 
         // ══ MAPA KAM → DIRETORIA
-        // Preencher/corrigir conforme a estrutura real da equipe.
-        // KAMs não mapeados aqui caem em "Não mapeado" nos gráficos de Diretoria.
+        function getDiretoria(kamNome){
+            if(!kamNome) return 'Não mapeado';
+            // Match exato primeiro
+            if(KAM_TO_DIRETORIA[kamNome]) return KAM_TO_DIRETORIA[kamNome];
+            // Match parcial: nome do CSV pode ter sobrenome extra (ex: "Anna Julia Junkes" vs "Anna Julia")
+            const kamLower = kamNome.toLowerCase();
+            for(const [nome, dir] of Object.entries(KAM_TO_DIRETORIA)){
+                if(kamLower.includes(nome.toLowerCase()) || nome.toLowerCase().includes(kamLower)){
+                    return dir;
+                }
+            }
+            return 'Não mapeado';
+        }
+
         const KAM_TO_DIRETORIA = {
-            'Felipe Hanke': 'Mobility',
-            'Bruno Reis': 'Mobility',
-            // 'Leonardo Dib': 'Solar',
-            // 'Kariny Maciel': 'Solar',
-            // 'Fabiam Lourenco': 'Solar',
-            // 'Anna Julia': 'Solar',
-            // 'Beatriz Sales': 'Solar',
-            // 'Wilton Moura': 'Projetos',
-            // 'Mateus Armando': 'Projetos',
-            // 'Camila Mendoza': 'Latam',
-            // 'Vinicius Ferreira': 'Projetos',
-            // 'Marcelo Leite': 'Projetos',
+            'Leonardo Dib': 'Distribution',
+            'Marcelo Leite': 'Distribution',
+            'Tainara': 'Distribution',
+            'Kelly Li': 'Distribution',
+            'Mateus Armando': 'Distribution',
+
+            'Anna Julia': 'E-Mobility',
+            'Beatriz Sales': 'E-Mobility',
+            'Kariny Maciel': 'E-Mobility',
+            'Vinicio Carrara': 'E-Mobility',
+
+            'Flavio Pimenta': 'Projects E-mobility',
+            'Bruno Reis': 'Projects E-mobility',
+            'Felipe Hanke': 'Projects E-mobility',
+
+            'Wilton Moura': 'Projects & Bids',
+            'Mateus Gomes': 'Projects & Bids',
+            'Thiago Gomes': 'Projects & Bids',
+            'Marcos Petroline': 'Projects & Bids',
+            'Ana Netildes': 'Projects & Bids',
+
+            'Fabiam Lourenco': 'Eletra',
+            'Samir Sarquis': 'Eletra',
+            'Vinicius Valadão': 'Eletra',
+
+            'Camila Mendoza': 'Hexing',
         };
 
         // ===============================================
@@ -436,7 +462,7 @@
                     'Obs SM': obs.sm,
                     Status: status,
                     Warehouse: row.warehouse,
-                    Diretoria: KAM_TO_DIRETORIA[row.kam] || 'Não mapeado'
+                    Diretoria: getDiretoria(row.kam)
                 });
             }
 
