@@ -287,11 +287,6 @@
                 </div>
             </div>
 
-            <div class="chart-container" style="margin-bottom:24px">
-                <h3>Tendência dos Últimos 30 Dias — Pedidos Recebidos</h3>
-                <canvas id="chartTendencia" style="max-height: 300px;"></canvas>
-            </div>
-
             <div class="chart-container">
                 <h3>Pedidos por Dia da Semana</h3>
                 <canvas id="chartDias" style="max-height: 400px;"></canvas>
@@ -372,8 +367,8 @@
                 dataEnvio: headers.findIndex(h => h.includes('data envio faturamento')),
                 pendencias: headers.findIndex(h => h.includes('quais') && (h.includes('pend') || h.includes('end'))),
                 warehouse: headers.findIndex(h => h.includes('warehouse')),
-                codProduto: headers.findIndex(h => h.includes('código') && h.includes('produto') || h.includes('codigo produto')),
-                descProduto: headers.findIndex(h => h === 'descrição' || h === 'descricao'),
+                codProduto: headers.findIndex(h => h.includes('digo') && h.includes('produto')),
+                descProduto: headers.findIndex(h => h.includes('descri')),
                 qtd: headers.findIndex(h => h.includes('qtdade') || h === 'qtd')
             };
 
@@ -609,7 +604,6 @@
                     drawChartStatus();
                     drawChartTopProdutos();
                     drawChartUnidade();
-                    drawChartTendencia();
                 }, 100);
             }
         }
@@ -706,54 +700,6 @@
                     maintainAspectRatio: true,
                     plugins: { legend: { display: false } },
                     scales: { x: { beginAtZero: true } }
-                }
-            });
-        }
-
-        // ══ GRÁFICO: Tendência últimos 30 dias (por semana, baseado em Data Pedido Recebido)
-        function drawChartTendencia(){
-            const ctx = document.getElementById('chartTendencia');
-            if (!ctx) return;
-
-            const hoje = new Date();
-            const limite = new Date();
-            limite.setDate(hoje.getDate() - 30);
-
-            // Agrupar por semana (Semana 1 = mais antiga, Semana 4 = mais recente)
-            const semanas = [0, 0, 0, 0];
-            csvData.forEach(p => {
-                if (!p['Data Pedido Recebido']) return;
-                const partes = p['Data Pedido Recebido'].split('/');
-                if (partes.length !== 3) return;
-                const data = new Date(partes[2], partes[1]-1, partes[0]);
-                if (isNaN(data) || data < limite || data > hoje) return;
-                const diasAtras = Math.floor((hoje - data) / (1000*60*60*24));
-                const semanaIdx = Math.min(3, Math.floor(diasAtras / 7));
-                // Semana 0 = mais recente (últimos 7 dias) → inverter para Semana 4
-                semanas[3 - semanaIdx]++;
-            });
-
-            if (window.chartTendenciaInstance) window.chartTendenciaInstance.destroy();
-            window.chartTendenciaInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4'],
-                    datasets: [{
-                        label: 'Pedidos Recebidos',
-                        data: semanas,
-                        borderColor: '#1976d2',
-                        backgroundColor: 'rgba(25,118,210,0.1)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 5,
-                        pointBackgroundColor: '#1976d2'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
                 }
             });
         }
