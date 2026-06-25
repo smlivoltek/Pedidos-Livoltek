@@ -112,21 +112,7 @@
             word-wrap: break-word;
             white-space: normal;
         }
-        tr:hover { background: #f9fafb; }
-        .has-kam {
-            background: #fff3cd;
-            border-left: 3px solid #f39c12;
-        }
-        .has-sm {
-            background: #f0f8ff;
-            border-left: 3px solid #3498db;
-        }
-        .has-both {
-            background: #fadbd8;
-            border-left: 3px solid #e74c3c;
-            font-weight: 500;
-        }
-            background: #fadbd8;
+        tr:hover { background: #f9fafb; }background: #fadbd8;
             color: #e74c3c;
             padding: 4px 10px;
             border-radius: 4px;
@@ -407,20 +393,17 @@
                 
                 // Determine highlighting
                 const temKAM = kamNote !== '--';
-                const temSM = justificativaSM !== '--';
-                const highlightClass = (temKAM && temSM) ? 'has-both' : temKAM ? 'has-kam' : temSM ? 'has-sm' : '';
-                
-                html += `<tr>
+                const temSM = justificativaSM !== '--';html += `<tr>
                     <td>${row['KAM'] || '--'}</td>
                     <td><strong>${row['Nº DO PEDIDO']}</strong></td>
                     <td>${row['CLIENTE'] || '--'}</td>
                     <td>${row['Data Pedido Recebido'] || '--'}</td>
                     <td>${row['Data Pedido Completo'] || '--'}</td>
                     <td>${getSLARecebCompleto(row)}</td>
-                    <td class="${highlightClass}">${kamNote}</td>
+                    <td>${kamNote}</td>
                     <td>${row['Data Envio Faturamento'] || '--'}</td>
                     <td>${getSLACompletoEnvio(row)}</td>
-                    <td class="${highlightClass}">${justificativaSM}</td>
+                    <td>${justificativaSM}</td>
                     <td><span class="${statusClass}">${row._status}</span></td>
                 </tr>`;
             });
