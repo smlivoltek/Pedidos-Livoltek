@@ -2,489 +2,379 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Painel de Status de Pedidos - Livoltek</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background: #f5f7fa;
-            color: #2c3e50;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            color: #333;
         }
-        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
-        .header {
-            background: white;
-            padding: 25px;
-            border-radius: 8px;
-            margin-bottom: 25px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { margin-bottom: 30px; }
+        h1 { 
+            font-size: 28px; 
+            color: #222; 
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
-        .header h1 { font-size: 28px; margin-bottom: 8px; color: #2c3e50; }
-        .header p { color: #7f8c8d; font-size: 14px; }
-        .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+        .cards { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+            gap: 20px; 
             margin-bottom: 30px;
         }
         .card {
             background: white;
-            padding: 20px;
+            padding: 24px;
             border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
             text-align: center;
-            border-left: 4px solid #95a5a6;
+            border-left: 4px solid #ddd;
         }
-        .card h3 { font-size: 32px; font-weight: bold; margin-bottom: 5px; }
-        .card p { color: #7f8c8d; font-size: 13px; }
-        .tab-buttons {
-            display: flex;
-            gap: 10px;
+        .card.vendedor { border-left-color: #c62828; }
+        .card.analise { border-left-color: #e65100; }
+        .card.faturamento { border-left-color: #2e7d32; }
+        .card h3 { 
+            font-size: 12px; 
+            color: #999; 
+            margin-bottom: 12px; 
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        .card .number { 
+            font-size: 44px; 
+            font-weight: 700; 
+            color: #333;
+        }
+        .tabs { 
+            display: flex; 
+            gap: 10px; 
             margin-bottom: 20px;
-            border-bottom: 2px solid #ecf0f1;
-            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
         }
-        .tab-button {
-            padding: 10px 20px;
-            background: #95a5a6;
-            color: white;
+        .tab-btn {
+            padding: 12px 20px;
+            background: none;
             border: none;
-            border-radius: 4px;
+            border-bottom: 3px solid transparent;
+            color: #666;
             cursor: pointer;
+            font-size: 14px;
             font-weight: 500;
-            transition: background 0.3s;
+            transition: all 0.2s;
         }
-        .tab-button.active {
-            background: #34495e;
+        .tab-btn:hover { color: #333; }
+        .tab-btn.active { 
+            color: #0066cc;
+            border-bottom-color: #0066cc;
         }
-        .filters {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .filters { 
+            display: flex; 
+            gap: 20px; 
+            margin-bottom: 20px; 
             align-items: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            flex-wrap: wrap;
         }
-        .filters select {
-            padding: 8px 12px;
-            border: 1px solid #bdc3c7;
+        .filter-group { 
+            display: flex; 
+            gap: 10px; 
+            align-items: center;
+        }
+        .filter-group label { 
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .filter-group select { 
+            padding: 8px 12px; 
+            border: 1px solid #ddd; 
             border-radius: 4px;
             font-size: 14px;
+            background: white;
             cursor: pointer;
         }
-        .filters label { font-weight: 500; color: #2c3e50; }
-        .loading {
-            text-align: center;
-            padding: 40px;
-            font-size: 14px;
-            color: #7f8c8d;
-        }
-        .no-data {
-            text-align: center;
-            padding: 40px;
-            color: #7f8c8d;
+        .filter-group select:hover {
+            border-color: #999;
         }
         table {
             width: 100%;
             border-collapse: collapse;
             background: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-        th {
-            background: #34495e;
-            color: white;
-            padding: 15px;
-            text-align: left;
+        th { 
+            background: #f8f8f8;
+            padding: 12px; 
+            text-align: left; 
             font-weight: 600;
+            border-bottom: 2px solid #eee;
             font-size: 13px;
-            text-transform: uppercase;
+            color: #555;
         }
-        td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #ecf0f1;
-            font-size: 13px;
-            word-wrap: break-word;
-            white-space: normal;
+        td { 
+            padding: 12px; 
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
         }
-        tr:hover { background: #f9fafb; }background: #fadbd8;
-            color: #e74c3c;
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-weight: 500;
+        tr:hover { background: #fafafa; }
+        .status { 
+            padding: 6px 12px; 
+            border-radius: 4px; 
+            font-size: 12px; 
+            font-weight: 600;
             display: inline-block;
         }
-        .status-analise {
-            background: #fef5e7;
-            color: #f39c12;
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-weight: 500;
-            display: inline-block;
+        .status-vendedor { 
+            background: #ffebee; 
+            color: #c62828;
         }
-        .status-faturamento {
-            background: #d5f4e6;
-            color: #27ae60;
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-weight: 500;
-            display: inline-block;
+        .status-analise { 
+            background: #fff3e0; 
+            color: #e65100;
         }
-        .last-update {
-            text-align: right;
-            font-size: 12px;
-            color: #95a5a6;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #ecf0f1;
+        .status-faturamento { 
+            background: #e8f5e9; 
+            color: #2e7d32;
         }
-        #pedidos-section { display: block; }
-        #analise-section { display: none; }
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+            font-size: 16px;
+        }
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+        .chart-container h3 {
+            margin-bottom: 20px;
+            font-size: 16px;
+            color: #333;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>📊 Painel de Status de Pedidos</h1>
-            <p>Livoltek - Sales Management | Atualização diária</p>
+            <p class="subtitle">Livoltek - Sales Management | Atualização diária</p>
         </div>
 
-        <div class="cards-grid">
-            <div class="card">
-                <h3 id="count-aguardando">0</h3>
-                <p>Aguardando Vendedor</p>
+        <div class="cards">
+            <div class="card vendedor">
+                <h3>Aguardando Vendedor</h3>
+                <div class="number" id="cardAguardando">0</div>
             </div>
-            <div class="card">
-                <h3 id="count-analise">0</h3>
-                <p>Em Análise (SM)</p>
+            <div class="card analise">
+                <h3>Em Análise (SM)</h3>
+                <div class="number" id="cardAnalise">0</div>
             </div>
-            <div class="card">
-                <h3 id="count-faturamento">0</h3>
-                <p>Enviado para Faturamento (PD)</p>
+            <div class="card faturamento">
+                <h3>Enviado para Faturamento (PD)</h3>
+                <div class="number" id="cardFaturamento">0</div>
             </div>
         </div>
 
-        <div class="tab-buttons">
-            <button id="tab-pedidos" class="tab-button active" onclick="switchTab('pedidos')">Pedidos</button>
-            <button id="tab-analise" class="tab-button" onclick="switchTab('analise')">Análise de Pendências</button>
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('pedidos', event)">Pedidos</button>
+            <button class="tab-btn" onclick="switchTab('analise', event)">Análise de Pendências</button>
         </div>
 
-        <div id="pedidos-section">
+        <div id="tabPedidos" class="tab-content active">
             <div class="filters">
-                <div>
-                    <label for="filter-kam">KAM:</label>
-                    <select id="filter-kam">
+                <div class="filter-group">
+                    <label>KAM:</label>
+                    <select id="filterKAM" onchange="renderTable()">
                         <option value="">Todos</option>
                     </select>
                 </div>
-                <div>
-                    <label for="filter-status">Status:</label>
-                    <select id="filter-status">
+                <div class="filter-group">
+                    <label>Status:</label>
+                    <select id="filterStatus" onchange="renderTable()">
                         <option value="">Todos</option>
                         <option value="PENDÊNCIA DO VENDEDOR">Aguardando Vendedor</option>
                         <option value="EM ANÁLISE (SM)">Em Análise (SM)</option>
-                        <option value="ENVIADO PARA FATURAMENTO (PD)">Enviado para Faturamento (PD)</option>
+                        <option value="ENVIADO PARA FATURAMENTO (PD)">Enviado para Faturamento</option>
                     </select>
                 </div>
             </div>
-            <div id="table-container">
-                <div class="loading">Carregando dados...</div>
-            </div>
+            <div id="tableContainer"></div>
         </div>
 
-        <div id="analise-section">
-            <div class="cards-grid">
-                <div class="card">
-                    <h3 id="stat-total-recebidos">0</h3>
-                    <p>Total de Pedidos</p>
-                </div>
-                <div class="card">
-                    <h3 id="stat-pendencia-vendedor">0</h3>
-                    <p>Pedidos com SLA > 0<br><span style="font-size: 12px; color: #95a5a6;">(Atraso do Vendedor)</span></p>
-                </div>
-                <div class="card">
-                    <h3 id="stat-atraso-sm">0</h3>
-                    <p>Pedidos com SLA > 1<br><span style="font-size: 12px; color: #95a5a6;">(Atraso da SM)</span></p>
-                </div>
+        <div id="tabAnalise" class="tab-content">
+            <div class="chart-container">
+                <h3>Pedidos por Dia da Semana</h3>
+                <canvas id="chartDias" style="max-height: 400px;"></canvas>
             </div>
-            <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-top: 20px;">
-                <h3 style="margin-bottom: 20px; color: #2c3e50;">Pedidos por Dia da Semana</h3>
-                <canvas id="chart-dias" style="max-height: 400px;"></canvas>
-                <div style="margin-top: 20px; padding: 15px; background: #f9fafb; border-radius: 6px; border-left: 4px solid #3498db;">
-                    <h4 style="margin-bottom: 10px; color: #2c3e50; font-size: 14px;">Legenda de Cores:</h4>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 13px;">
-                        <div>🔵 <strong>Azul</strong> - Segunda a Quarta</div>
-                        <div>🟠 <strong>Laranja</strong> - Quinta</div>
-                        <div>🔴 <strong>Vermelho</strong> - Sexta (mais atrasos)</div>
-                        <div>⚫ <strong>Cinza</strong> - Sábado/Domingo</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="last-update">
-            Última atualização: <span id="last-update">--</span>
         </div>
     </div>
 
     <script>
-        const CSV_URL = 'pedidos.csv';
-        let allData = [];
-        let window_chartDias = null;
+        const PEDIDOS_DATA = [{"KAM": "Leonardo Dib", "Nº DO PEDIDO": "LIVNEO526062", "CLIENTE": "NEOSOLAR ENERGIA LTDA", "Data Pedido Recebido": "19/05/2026", "Data Pedido Completo": "21/5/2026", "Data Envio Faturamento": "21/5/2026", "Quais Pendências?": "SM: Equipe operando com recursos reduzidos. Alterações de IPI no pedido."}, {"KAM": "Fabiam Lourenco", "Nº DO PEDIDO": "LIVLIL526064", "CLIENTE": "LILE GASTRONOMIA", "Data Pedido Recebido": "13/03/2026", "Data Pedido Completo": "", "Data Envio Faturamento": "", "Quais Pendências?": "KAM: produto sem estoque"}, {"KAM": "Leonardo Dib", "Nº DO PEDIDO": "LIVAMA526066", "CLIENTE": "AMARA NET ZERO BRASIL LTDA", "Data Pedido Recebido": "14/05/2026", "Data Pedido Completo": "22/5/2026", "Data Envio Faturamento": "22/5/2026", "Quais Pendências?": "KAM: Não tem estoque de todos os produtos"}, {"KAM": "Anna Julia", "Nº DO PEDIDO": "LIVGWM526070", "CLIENTE": "GWM BRASIL", "Data Pedido Recebido": "16/05/2026", "Data Pedido Completo": "", "Data Envio Faturamento": "", "Quais Pendências?": "KAM: Aguardando aprovação do cliente"}, {"KAM": "Beatriz Sales", "Nº DO PEDIDO": "LIVFOR526074", "CLIENTE": "FORTLEV ENERGIA SOLAR", "Data Pedido Recebido": "18/05/2026", "Data Pedido Completo": "20/5/2026", "Data Envio Faturamento": "", "Quais Pendências?": "SM: Verificação de documentação"}, {"KAM": "Kariny Maciel", "Nº DO PEDIDO": "LIVJOI526076", "CLIENTE": "JOINING ELETRO-ELÉTRICOS", "Data Pedido Recebido": "12/05/2026", "Data Pedido Completo": "19/5/2026", "Data Envio Faturamento": "19/5/2026", "Quais Pendências?": ""}, {"KAM": "Wilton Moura", "Nº DO PEDIDO": "LIVPRO526082", "CLIENTE": "PROJETOS MANAUS", "Data Pedido Recebido": "20/05/2026", "Data Pedido Completo": "", "Data Envio Faturamento": "", "Quais Pendências?": "KAM: Aguardando comprovante de pagamento"}, {"KAM": "Bruno Reis", "Nº DO PEDIDO": "LIVEMO526088", "CLIENTE": "E-MOBILITY SOLUTIONS", "Data Pedido Recebido": "15/05/2026", "Data Pedido Completo": "18/5/2026", "Data Envio Faturamento": "18/5/2026", "Quais Pendências?": "SM: Liberação de estoque"}, {"KAM": "Felipe Hanke", "Nº DO PEDIDO": "LIVELA526091", "CLIENTE": "ELÁTRICAS BRASIL", "Data Pedido Recebido": "17/05/2026", "Data Pedido Completo": "", "Data Envio Faturamento": "", "Quais Pendências?": "KAM: Aguardando documentação fiscal"}, {"KAM": "Mateus Armando", "Nº DO PEDIDO": "LIVDIS526095", "CLIENTE": "DISTRIBUIÇÃO BRASIL", "Data Pedido Recebido": "19/05/2026", "Data Pedido Completo": "21/5/2026", "Data Envio Faturamento": "21/5/2026", "Quais Pendências?": ""}, {"KAM": "Leonardo Dib", "Nº DO PEDIDO": "LIVNEO526098", "CLIENTE": "NEOSOLAR ENERGIA LTDA", "Data Pedido Recebido": "21/05/2026", "Data Pedido Completo": "", "Data Envio Faturamento": "", "Quais Pendências?": "KAM: Revisão de especificações técnicas"}, {"KAM": "Fabiam Lourenco", "Nº DO PEDIDO": "LIVELR526102", "CLIENTE": "ELETRA BRASIL", "Data Pedido Recebido": "14/05/2026", "Data Pedido Completo": "20/5/2026", "Data Envio Faturamento": "", "Quais Pendências?": "SM: Análise de crédito"}, {"KAM": "Kariny Maciel", "Nº DO PEDIDO": "LIVCOPEL526105", "CLIENTE": "COPEL", "Data Pedido Recebido": "13/05/2026", "Data Pedido Completo": "19/5/2026", "Data Envio Faturamento": "19/5/2026", "Quais Pendências?": ""}, {"KAM": "Beatriz Sales", "Nº DO PEDIDO": "LIVCOELBA526108", "CLIENTE": "COELBA", "Data Pedido Recebido": "16/05/2026", "Data Pedido Completo": "22/5/2026", "Data Envio Faturamento": "", "Quais Pendências?": "SM: Conferência de quantidades"}, {"KAM": "Wilton Moura", "Nº DO PEDIDO": "LIVSP526112", "CLIENTE": "SPTRANS", "Data Pedido Recebido": "18/05/2026", "Data Pedido Completo": "21/5/2026", "Data Envio Faturamento": "21/5/2026", "Quais Pendências?": "KAM: Confirmação de prazo de entrega"}, {"KAM": "Bruno Reis", "Nº DO PEDIDO": "LIVCINC526115", "CLIENTE": "CINCATARINA/ELETRA", "Data Pedido Recebido": "17/05/2026", "Data Pedido Completo": "", "Data Envio Faturamento": "", "Quais Pendências?": "SM: Validação de documentação"}, {"KAM": "Felipe Hanke", "Nº DO PEDIDO": "LIVGWM526118", "CLIENTE": "GWM BRASIL - MATRIZ", "Data Pedido Recebido": "20/05/2026", "Data Pedido Completo": "23/5/2026", "Data Envio Faturamento": "", "Quais Pendências?": "SM: Liberação gerencial"}, {"KAM": "Mateus Armando", "Nº DO PEDIDO": "LIVBRAS526121", "CLIENTE": "BRASCOM", "Data Pedido Recebido": "15/05/2026", "Data Pedido Completo": "19/5/2026", "Data Envio Faturamento": "19/5/2026", "Quais Pendências?": ""}, {"KAM": "Anna Julia", "Nº DO PEDIDO": "LIVPAL526125", "CLIENTE": "PALHETA ENGENHARIA", "Data Pedido Recebido": "21/05/2026", "Data Pedido Completo": "", "Data Envio Faturamento": "", "Quais Pendências?": "KAM: Aguardando orçamento de frete"}, {"KAM": "Leonardo Dib", "Nº DO PEDIDO": "LIVFOR526128", "CLIENTE": "FORTLEV ENERGIA SOLAR", "Data Pedido Recebido": "12/05/2026", "Data Pedido Completo": "18/5/2026", "Data Envio Faturamento": "18/5/2026", "Quais Pendências?": "SM: NF emitida com sucesso"}, {"KAM": "Fabiam Lourenco", "Nº DO PEDIDO": "LIVJOI526131", "CLIENTE": "JOINING ELETRO-ELÉTRICOS", "Data Pedido Recebido": "19/05/2026", "Data Pedido Completo": "21/5/2026", "Data Envio Faturamento": "", "Quais Pendências?": "SM: Aguardando comprovante de entrega"}, {"KAM": "Kariny Maciel", "Nº DO PEDIDO": "LIVPRO526135", "CLIENTE": "PROJETOS MANAUS", "Data Pedido Recebido": "14/05/2026", "Data Pedido Completo": "", "Data Envio Faturamento": "", "Quais Pendências?": "KAM: Cliente em análise de crédito"}, {"KAM": "Beatriz Sales", "Nº DO PEDIDO": "LIVEMO526138", "CLIENTE": "E-MOBILITY SOLUTIONS", "Data Pedido Recebido": "17/05/2026", "Data Pedido Completo": "20/5/2026", "Data Envio Faturamento": "20/5/2026", "Quais Pendências?": ""}, {"KAM": "Wilton Moura", "Nº DO PEDIDO": "LIVELA526142", "CLIENTE": "ELÁTRICAS BRASIL", "Data Pedido Recebido": "13/05/2026", "Data Pedido Completo": "19/5/2026", "Data Envio Faturamento": "19/5/2026", "Quais Pendências?": "KAM: Pedido processado com sucesso"}, {"KAM": "Bruno Reis", "Nº DO PEDIDO": "LIVDIS526145", "CLIENTE": "DISTRIBUIÇÃO BRASIL", "Data Pedido Recebido": "16/05/2026", "Data Pedido Completo": "", "Data Envio Faturamento": "", "Quais Pendências?": "SM: Análise de limites de crédito"}];
 
-        const columnMap = {
-            'VENDEDOR': 'KAM',
-            'Nº DO PEDIDO': 'Nº DO PEDIDO',
-            'CLIENTE': 'CLIENTE',
-            'Data Pedido Recebido': 'Data Pedido Recebido',
-            'Data Pedido Completo': 'Data Pedido Completo',
-            'Data Envio Faturamento': 'Data Envio Faturamento',
-            'Quais Pendências?': 'Quais Pendências?'
-        };
+        let csvData = [];
 
-        function parseCSV(text) {
-            const lines = text.split('\n').filter(l => l.trim());
-            if (lines.length < 2) return [];
-            
-            const firstLine = lines[0];
-            const isSemicolon = (firstLine.match(/;/g) || []).length > (firstLine.match(/,/g) || []).length;
-            const separator = isSemicolon ? ';' : ',';
-            
-            const headers = lines[0].split(separator).map(h => h.trim());
-            const pedidoMap = {};
-            
-            for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].split(separator).map(v => v.trim());
-                const row = {};
+        function initData() {
+            csvData = [];
+            const seen = new Set();
+
+            for (let pedido of PEDIDOS_DATA) {
+                const po = pedido['Nº DO PEDIDO'];
                 
-                headers.forEach((h, idx) => {
-                    const mappedKey = columnMap[h] || h;
-                    row[mappedKey] = values[idx] || '';
-                });
-                
-                const po = row['Nº DO PEDIDO'];
-                const kam = row['KAM'];
-                
-                // Validar: PO deve existir, KAM deve ser texto válido (não número)
-                if (!po || !kam) continue;
-                if (po.startsWith('#')) continue;
-                
-                // KAM deve ser nome válido (não número, não vazio)
-                const kamTrimmed = kam.trim();
-                if (!kamTrimmed) continue;
-                if (/^\d+(\.\d+)?$/.test(kamTrimmed)) continue; // É número puro
-                if (kamTrimmed.length < 2) continue; // Muito curto
-                
-                // Primeira ocorrência de cada PO
-                if (!pedidoMap[po]) {
-                    pedidoMap[po] = row;
+                if (po && !seen.has(po)) {
+                    seen.add(po);
+                    
+                    const receb = pedido['Data Pedido Recebido'];
+                    const compl = pedido['Data Pedido Completo'];
+                    const envio = pedido['Data Envio Faturamento'];
+
+                    if (receb && !compl) {
+                        pedido.Status = 'PENDÊNCIA DO VENDEDOR';
+                    } else if (receb && compl && !envio) {
+                        pedido.Status = 'EM ANÁLISE (SM)';
+                    } else if (receb && compl && envio) {
+                        pedido.Status = 'ENVIADO PARA FATURAMENTO (PD)';
+                    }
+
+                    csvData.push(pedido);
                 }
             }
-            
-            return Object.values(pedidoMap);
+
+            updateUI();
         }
 
-        function compareDates(data1, data2) {
-            const parseDate = (dateStr) => {
-                if (!dateStr) return null;
-                const [d, m, y] = dateStr.split('/');
-                return new Date(y, m - 1, d);
-            };
-            const d1 = parseDate(data1);
-            const d2 = parseDate(data2);
-            if (!d1 || !d2) return null;
-            return Math.floor((d2 - d1) / (1000 * 60 * 60 * 24));
-        }
-
-        function calculateStatus(row) {
-            const dataRecebimento = row['Data Pedido Recebido'] || '';
-            const dataPedidoCompleto = row['Data Pedido Completo'] || '';
-            const dataEnvio = row['Data Envio Faturamento'] || '';
-            
-            if (dataRecebimento && !dataPedidoCompleto) return 'PENDÊNCIA DO VENDEDOR';
-            if (dataRecebimento && dataPedidoCompleto && !dataEnvio) return 'EM ANÁLISE (SM)';
-            if (dataRecebimento && dataPedidoCompleto && dataEnvio) return 'ENVIADO PARA FATURAMENTO (PD)';
-            return 'AGUARDANDO';
-        }
-
-        function extractJustificativaSM(pendenciesText) {
-            if (!pendenciesText) return '--';
-            const match = pendenciesText.match(/SM:\s*([^|]*?)(?:\||$)/i);
-            return match && match[1].trim() ? match[1].trim() : '--';
-        }
-
-        function extractKAMNote(pendenciesText) {
-            if (!pendenciesText) return '--';
-            const match = pendenciesText.match(/KAM:\s*([^|]*?)(?:SM:|$)/i);
-            return match && match[1].trim() ? match[1].trim() : '--';
-        }
-
-        function getSLARecebCompleto(row) {
-            const dataRecebimento = row['Data Pedido Recebido'] || '';
-            const dataPedidoCompleto = row['Data Pedido Completo'] || '';
-            if (!dataRecebimento || !dataPedidoCompleto) return '--';
-            const diff = compareDates(dataRecebimento, dataPedidoCompleto);
-            return diff !== null ? `${diff} dias` : '--';
-        }
-
-        function getSLACompletoEnvio(row) {
-            const dataPedidoCompleto = row['Data Pedido Completo'] || '';
-            const dataEnvio = row['Data Envio Faturamento'] || '';
-            if (!dataPedidoCompleto || !dataEnvio) return '--';
-            const diff = compareDates(dataPedidoCompleto, dataEnvio);
-            return diff !== null ? `${diff} dias` : '--';
-        }
-
-        function getStatusClass(status) {
-            if (status === 'PENDÊNCIA DO VENDEDOR') return 'status-incompleto';
-            if (status === 'EM ANÁLISE (SM)') return 'status-analise';
-            if (status === 'ENVIADO PARA FATURAMENTO (PD)') return 'status-faturamento';
-            return 'status-incompleto';
-        }
-
-        function updateCounts() {
-            const aguardando = allData.filter(r => calculateStatus(r) === 'PENDÊNCIA DO VENDEDOR').length;
-            const analise = allData.filter(r => calculateStatus(r) === 'EM ANÁLISE (SM)').length;
-            const faturamento = allData.filter(r => calculateStatus(r) === 'ENVIADO PARA FATURAMENTO (PD)').length;
-            document.getElementById('count-aguardando').textContent = aguardando;
-            document.getElementById('count-analise').textContent = analise;
-            document.getElementById('count-faturamento').textContent = faturamento;
-        }
-
-        function populateKAMFilter() {
-            const kams = [...new Set(allData.map(r => r['KAM'] || '').filter(Boolean))].sort();
-            const select = document.getElementById('filter-kam');
-            kams.forEach(kam => {
-                const opt = document.createElement('option');
-                opt.value = kam;
-                opt.textContent = kam;
-                select.appendChild(opt);
-            });
-        }
-
-        function renderTable() {
-            const filterKam = document.getElementById('filter-kam').value;
-            const filterStatus = document.getElementById('filter-status').value;
-
-            let filtered = allData.map(row => ({
-                ...row,
-                _status: calculateStatus(row)
-            }));
-
-            if (filterKam) filtered = filtered.filter(r => r['KAM'] === filterKam);
-            if (filterStatus) filtered = filtered.filter(r => r._status === filterStatus);
-
-            if (filtered.length === 0) {
-                document.getElementById('table-container').innerHTML = '<div class="no-data">Nenhum pedido encontrado.</div>';
+        function updateUI() {
+            if (csvData.length === 0) {
+                document.getElementById('tableContainer').innerHTML = 
+                    '<div class="empty-state">Nenhum pedido encontrado.</div>';
                 return;
             }
 
-            let html = `<table><thead><tr><th>KAM</th><th>Nº Pedido</th><th>Cliente</th><th>Receb.</th><th>Completo</th><th>SLA Receb→Completo</th><th>Pendências</th><th>Envio PD</th><th>SLA Envio</th><th>Justificativa SM</th><th>Status</th></tr></thead><tbody>`;
+            const aguardando = csvData.filter(p => p.Status === 'PENDÊNCIA DO VENDEDOR').length;
+            const analise = csvData.filter(p => p.Status === 'EM ANÁLISE (SM)').length;
+            const faturamento = csvData.filter(p => p.Status === 'ENVIADO PARA FATURAMENTO (PD)').length;
 
-            filtered.forEach(row => {
-                const statusClass = getStatusClass(row._status);
-                const justificativaSM = extractJustificativaSM(row['Quais Pendências?']);
-                const kamNote = extractKAMNote(row['Quais Pendências?']);
-                
-                // Determine highlighting
-                const temKAM = kamNote !== '--';
-                const temSM = justificativaSM !== '--';html += `<tr>
-                    <td>${row['KAM'] || '--'}</td>
-                    <td><strong>${row['Nº DO PEDIDO']}</strong></td>
-                    <td>${row['CLIENTE'] || '--'}</td>
-                    <td>${row['Data Pedido Recebido'] || '--'}</td>
-                    <td>${row['Data Pedido Completo'] || '--'}</td>
-                    <td>${getSLARecebCompleto(row)}</td>
-                    <td>${kamNote}</td>
-                    <td>${row['Data Envio Faturamento'] || '--'}</td>
-                    <td>${getSLACompletoEnvio(row)}</td>
-                    <td>${justificativaSM}</td>
-                    <td><span class="${statusClass}">${row._status}</span></td>
-                </tr>`;
+            document.getElementById('cardAguardando').textContent = aguardando;
+            document.getElementById('cardAnalise').textContent = analise;
+            document.getElementById('cardFaturamento').textContent = faturamento;
+
+            const kams = [...new Set(csvData.map(p => p.KAM).filter(Boolean))].sort();
+            const kamSelect = document.getElementById('filterKAM');
+            kamSelect.innerHTML = '<option value="">Todos</option>';
+            kams.forEach(k => {
+                kamSelect.innerHTML += `<option value="${k}">${k}</option>`;
             });
 
-            html += '</tbody></table>';
-            document.getElementById('table-container').innerHTML = html;
+            renderTable();
         }
 
-        function switchTab(tabName) {
-            const pedidosSection = document.getElementById('pedidos-section');
-            const analiseSection = document.getElementById('analise-section');
-            const tabPedidos = document.getElementById('tab-pedidos');
-            const tabAnalise = document.getElementById('tab-analise');
+        function renderTable() {
+            const kamFilter = document.getElementById('filterKAM').value;
+            const statusFilter = document.getElementById('filterStatus').value;
+
+            let filtered = csvData.filter(p => {
+                const kamOk = !kamFilter || p.KAM === kamFilter;
+                const statusOk = !statusFilter || p.Status === statusFilter;
+                return kamOk && statusOk;
+            });
+
+            if (filtered.length === 0) {
+                document.getElementById('tableContainer').innerHTML = 
+                    '<div class="empty-state">Nenhum pedido encontrado com os filtros selecionados.</div>';
+                return;
+            }
+
+            let html = '<table><tr>';
+            html += '<th>KAM</th><th>Nº Pedido</th><th>Cliente</th><th>Receb.</th><th>Completo</th>';
+            html += '<th>Envio PD</th><th>Pendências</th><th>Status</th></tr>';
+
+            filtered.forEach(p => {
+                const statusClass = p.Status === 'PENDÊNCIA DO VENDEDOR' ? 'status-vendedor' :
+                                   p.Status === 'EM ANÁLISE (SM)' ? 'status-analise' : 'status-faturamento';
+                html += '<tr>';
+                html += `<td>${p.KAM || '-'}</td>`;
+                html += `<td><strong>${p['Nº DO PEDIDO'] || '-'}</strong></td>`;
+                html += `<td>${p.CLIENTE || '-'}</td>`;
+                html += `<td>${p['Data Pedido Recebido'] || '-'}</td>`;
+                html += `<td>${p['Data Pedido Completo'] || '-'}</td>`;
+                html += `<td>${p['Data Envio Faturamento'] || '-'}</td>`;
+                html += `<td style="font-size: 12px; color: #666;">${p['Quais Pendências?'] ? p['Quais Pendências?'].substring(0, 50) + '...' : '-'}</td>`;
+                html += `<td><span class="status ${statusClass}">${p.Status || '-'}</span></td>`;
+                html += '</tr>';
+            });
+            html += '</table>';
+
+            document.getElementById('tableContainer').innerHTML = html;
+        }
+
+        function switchTab(tab, event) {
+            event.preventDefault();
             
-            if (tabName === 'pedidos') {
-                pedidosSection.style.display = 'block';
-                analiseSection.style.display = 'none';
-                tabPedidos.classList.add('active');
-                tabAnalise.classList.remove('active');
-            } else {
-                pedidosSection.style.display = 'none';
-                analiseSection.style.display = 'block';
-                tabPedidos.classList.remove('active');
-                tabAnalise.classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+            event.target.classList.add('active');
+            
+            if (tab === 'analise') {
+                setTimeout(() => drawChart(), 100);
             }
         }
 
-        function updateAnalytics() {
-            const totalRecebidos = allData.length;
+        function drawChart() {
+            const ctx = document.getElementById('chartDias');
+            if (!ctx) return;
             
-            // Pedidos com atraso do Vendedor (SLA Receb→Completo > 0)
-            const atrasoVendedor = allData.filter(row => {
-                const dataRecebimento = row['Data Pedido Recebido'] || '';
-                const dataPedidoCompleto = row['Data Pedido Completo'] || '';
-                if (!dataRecebimento || !dataPedidoCompleto) return false;
-                const sla = compareDates(dataRecebimento, dataPedidoCompleto);
-                return sla !== null && sla > 0;
-            }).length;
+            const dias = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
             
-            // Pedidos com atraso da SM (SLA Completo→Envio > 1)
-            const atrasoSM = allData.filter(row => {
-                const dataPedidoCompleto = row['Data Pedido Completo'] || '';
-                const dataEnvio = row['Data Envio Faturamento'] || '';
-                if (!dataPedidoCompleto || !dataEnvio) return false;
-                const sla = compareDates(dataPedidoCompleto, dataEnvio);
-                return sla !== null && sla > 1;
-            }).length;
-            
-            document.getElementById('stat-total-recebidos').textContent = totalRecebidos;
-            document.getElementById('stat-pendencia-vendedor').textContent = atrasoVendedor;
-            document.getElementById('stat-atraso-sm').textContent = atrasoSM;
-            
-            // Gráfico
-            const diasSemana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
-            const contagemPorDia = [0, 0, 0, 0, 0, 0, 0];
-            
-            allData.forEach(row => {
-                const dataRecebimento = row['Data Pedido Recebido'] || '';
-                if (dataRecebimento) {
-                    const [d, m, y] = dataRecebimento.split('/');
-                    const date = new Date(y, m - 1, d);
-                    const diaSemana = date.getDay();
-                    const diaIndex = diaSemana === 0 ? 6 : diaSemana - 1;
-                    contagemPorDia[diaIndex]++;
+            csvData.forEach(p => {
+                if (p['Data Pedido Recebido']) {
+                    try {
+                        const parts = p['Data Pedido Recebido'].split('/');
+                        const date = new Date(parts[2], parts[1] - 1, parts[0]);
+                        if (!isNaN(date)) {
+                            dias[date.getDay()]++;
+                        }
+                    } catch (e) {}
                 }
             });
-            
-            const chartElement = document.getElementById('chart-dias');
-            if (!chartElement) return;
-            
-            const ctx = chartElement.getContext('2d');
-            if (window_chartDias) window_chartDias.destroy();
-            
-            window_chartDias = new Chart(ctx, {
+
+            const colors = ['#9e9e9e', '#1976d2', '#1976d2', '#1976d2', '#ff9800', '#f44336', '#9e9e9e'];
+            const labels = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+
+            if (window.chartInstance) {
+                window.chartInstance.destroy();
+            }
+
+            window.chartInstance = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: diasSemana,
+                    labels: labels,
                     datasets: [{
-                        label: 'Quantidade de Pedidos',
-                        data: contagemPorDia,
-                        backgroundColor: ['#3498db', '#3498db', '#3498db', '#f39c12', '#e74c3c', '#95a5a6', '#95a5a6'],
+                        label: 'Pedidos',
+                        data: Object.values(dias),
+                        backgroundColor: colors,
                         borderRadius: 4,
                         borderSkipped: false
                     }]
@@ -492,60 +382,21 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
-                },
-                plugins: [{
-                    id: 'chartPercentagePlugin',
-                    afterDatasetsDraw(chart) {
-                        const { ctx, data } = chart;
-                        const total = data.datasets[0].data.reduce((a, b) => a + b, 0);
-                        
-                        chart.getDatasetMeta(0).data.forEach((datapoint, index) => {
-                            const { x, y } = datapoint.tooltipPosition();
-                            const value = data.datasets[0].data[index];
-                            const percentage = ((value / total) * 100).toFixed(1);
-                            
-                            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-                            ctx.fillRect(x - 20, y - 25, 40, 20);
-                            ctx.fillStyle = '#fff';
-                            ctx.font = 'bold 12px Arial';
-                            ctx.textAlign = 'center';
-                            ctx.textBaseline = 'middle';
-                            ctx.fillText(percentage + '%', x, y - 15);
-                        });
+                    indexAxis: 'x',
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: Math.max(...Object.values(dias)) + 2
+                        }
                     }
-                }]
+                }
             });
         }
 
-        async function fetchData() {
-            try {
-                const response = await fetch(CSV_URL);
-                if (!response.ok) throw new Error('CSV não encontrado');
-                const text = await response.text();
-                allData = parseCSV(text);
-                
-                if (allData.length === 0) {
-                    document.getElementById('table-container').innerHTML = '<div class="no-data">Nenhum pedido válido encontrado no CSV.</div>';
-                    return;
-                }
-                
-                updateCounts();
-                populateKAMFilter();
-                renderTable();
-                updateAnalytics();
-                document.getElementById('last-update').textContent = new Date().toLocaleString('pt-BR');
-            } catch (error) {
-                console.error('Erro:', error);
-                document.getElementById('table-container').innerHTML = `<div class="no-data">Erro ao carregar dados: ${error.message}</div>`;
-            }
-        }
-
-        document.getElementById('filter-kam').addEventListener('change', renderTable);
-        document.getElementById('filter-status').addEventListener('change', renderTable);
-
-        fetchData();
+        document.addEventListener('DOMContentLoaded', initData);
     </script>
 </body>
 </html>
