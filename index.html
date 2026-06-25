@@ -282,7 +282,7 @@
                     <canvas id="chartDiretoria" style="max-height: 320px;"></canvas>
                 </div>
                 <div class="chart-container">
-                    <h3>Pedidos por Unidade</h3>
+                    <h3>Pedidos por Armazém</h3>
                     <canvas id="chartUnidade" style="max-height: 320px;"></canvas>
                 </div>
             </div>
@@ -342,6 +342,7 @@
             'Fabiam Lourenco': 'Eletra',
             'Samir Sarquis': 'Eletra',
             'Vinicius Valadão': 'Eletra',
+            'Vinicius Ferreira': 'Eletra',
 
             'Camila Mendoza': 'Hexing',
             'Flora': 'Hexing',
@@ -369,7 +370,7 @@
                 dataReceb: headers.findIndex(h => h.includes('data pedido recebido')),
                 dataCompl: headers.findIndex(h => h.includes('data pedido completo')),
                 dataEnvio: headers.findIndex(h => h.includes('data envio faturamento')),
-                pendencias: headers.findIndex(h => h.includes('quais') && h.includes('pendências')),
+                pendencias: headers.findIndex(h => h.includes('quais') && (h.includes('pend') || h.includes('end'))),
                 warehouse: headers.findIndex(h => h.includes('warehouse'))
             };
 
@@ -458,7 +459,7 @@
                     'Data Pedido Completo': compl,
                     'Data Envio Faturamento': envio,
                     'SLA Receb→Compl': slaRecebCompl,
-                    'Obs Pendências': obs.kam,
+                    'Obs Pendências': obs.kam || obs.sm,
                     'SLA Compl→Envio': slaComplEnvio,
                     'Obs SM': obs.sm,
                     Status: status,
