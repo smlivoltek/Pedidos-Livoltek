@@ -264,9 +264,17 @@
                     <h3>Total de Pedidos Únicos</h3>
                     <div class="number" id="cardTotalAnalise">0</div>
                 </div>
-                <div class="card">
-                    <h3>Pedidos com Pendências Enviados para SM</h3>
+                <div class="card" id="cardSLAVendedorClick" onclick="toggleListaSemEnvioFinal()" style="cursor:pointer">
+                    <h3>Pedidos com Pendências Enviados para SM <span style="font-size:11px;opacity:.6">(clique para ver)</span></h3>
                     <div class="number" id="cardSLAVendedor">0</div>
+                </div>
+            </div>
+
+            <!-- Lista expansível: pedidos sem 'Envio Final à SM' (Data Pedido Completo vazia) -->
+            <div id="listaSemEnvioFinal" style="display:none;margin-bottom:24px">
+                <div class="chart-container">
+                    <h3>Pedidos sem Envio Final à SM</h3>
+                    <div id="tabelaSemEnvioFinal"></div>
                 </div>
             </div>
 
@@ -525,7 +533,9 @@
             const faturamento = csvData.filter(p => p.Status === 'ENVIADO PARA FATURAMENTO (PD)').length;
 
             // Novas métricas para aba Análise
-            const slaVendedor = csvData.filter(p => p['SLA Receb→Compl'] > 0).length;
+            // "Pendências enviadas para SM" = pedidos sem Envio Final à SM (Data Pedido Completo vazia)
+            const pedidosSemEnvioFinal = csvData.filter(p => p['Data Pedido Recebido'] && !p['Data Pedido Completo']);
+            const slaVendedor = pedidosSemEnvioFinal.length;
 
             // Tela principal
             document.getElementById('cardTotal').textContent = total;
@@ -638,13 +648,58 @@
         }
 
         // ══ GRÁFICO: Top 10 Produtos Mais Vendidos (horizontal, por quantidade)
+        // Monta o label da barra: sempre tenta mostrar o SKU (código),
+        // e quando o código é "opaco" (só números, sem nome legível — comum em itens da fábrica
+        // de Manaus), complementa com um trecho da descrição para o vendedor saber o que é.
+        function montaLabelProduto(p){
+            const codigoOpaco = /^\d+$/.test(p.codigo); // só números → não diz nada por si só
+            if (!codigoOpaco) return p.codigo;
+            const descCurta = p.descricao.length > 32 ? p.descricao.slice(0,32)+'…' : p.descricao;
+            return `${p.codigo} — ${descCurta}`;
+        }
+
+        // ══ Lista expansível: pedidos sem Envio Final à SM
+        let listaSemEnvioFinalAberta = false;
+        function toggleListaSemEnvioFinal(){
+            listaSemEnvioFinalAberta = !listaSemEnvioFinalAberta;
+            const painel = document.getElementById('listaSemEnvioFinal');
+            if (!listaSemEnvioFinalAberta) {
+                painel.style.display = 'none';
+                return;
+            }
+            painel.style.display = 'block';
+
+            const pedidos = csvData.filter(p => p['Data Pedido Recebido'] && !p['Data Pedido Completo']);
+            const container = document.getElementById('tabelaSemEnvioFinal');
+
+            if (pedidos.length === 0) {
+                container.innerHTML = '<div class="empty-state">Nenhum pedido pendente de Envio Final à SM.</div>';
+                return;
+            }
+
+            let html = '<table><tr><th>KAM</th><th>Nº Pedido</th><th>Primeiro Envio à SM</th><th>Pendências do Pedido</th><th>Status</th></tr>';
+            pedidos.forEach(p => {
+                const statusClass = p.Status === 'PENDÊNCIA DO VENDEDOR' ? 'status-vendedor' :
+                                   p.Status === 'EM ANÁLISE (SM)' ? 'status-analise' : 'status-faturamento';
+                html += '<tr>';
+                html += `<td>${p.KAM || '-'}</td>`;
+                html += `<td><strong>${p['Nº DO PEDIDO'] || '-'}</strong></td>`;
+                html += `<td>${p['Data Pedido Recebido'] || '-'}</td>`;
+                html += `<td class="obs-small">${p['Obs Pendências'] || '-'}</td>`;
+                html += `<td><span class="status ${statusClass}">${p.Status || '-'}</span></td>`;
+                html += '</tr>';
+            });
+            html += '</table>';
+            container.innerHTML = html;
+        }
+
         function drawChartTopProdutos(){
             const ctx = document.getElementById('chartTopProdutos');
             if (!ctx) return;
             const top10 = produtosVendidos.slice(0, 10);
             // Ordem ascendente no array para o maior aparecer no topo da barra horizontal
             const ordenado = [...top10].reverse();
-            const labels = ordenado.map(p => p.descricao.length > 40 ? p.descricao.slice(0,40)+'…' : p.descricao);
+            const labels = ordenado.map(montaLabelProduto);
             const data = ordenado.map(p => p.qtdTotal);
 
             if (window.chartTopProdutosInstance) window.chartTopProdutosInstance.destroy();
@@ -665,6 +720,10 @@
                                 title: (items) => {
                                     const idx = items[0].dataIndex;
                                     return ordenado[idx].codigo;
+                                },
+                                afterTitle: (items) => {
+                                    const idx = items[0].dataIndex;
+                                    return ordenado[idx].descricao;
                                 }
                             }
                         }
