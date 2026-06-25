@@ -227,7 +227,7 @@
 
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('pedidos', event)">Pedidos</button>
-            <button class="tab-btn" onclick="switchTab('analise', event)">Análise de Pendências</button>
+            <button class="tab-btn" onclick="switchTab('analise', event)">Análises</button>
         </div>
 
         <div id="tabPedidos" class="tab-content active">
@@ -270,6 +270,28 @@
                 </div>
             </div>
 
+            <!-- Distribuição por Status — gráfico mais importante -->
+            <div class="chart-container" style="margin-bottom:24px">
+                <h3>Distribuição por Status</h3>
+                <canvas id="chartStatus" style="max-height: 280px;"></canvas>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
+                <div class="chart-container">
+                    <h3>Pedidos por Diretoria</h3>
+                    <canvas id="chartDiretoria" style="max-height: 320px;"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Pedidos por Unidade</h3>
+                    <canvas id="chartUnidade" style="max-height: 320px;"></canvas>
+                </div>
+            </div>
+
+            <div class="chart-container" style="margin-bottom:24px">
+                <h3>Tendência dos Últimos 30 Dias — Pedidos Recebidos</h3>
+                <canvas id="chartTendencia" style="max-height: 300px;"></canvas>
+            </div>
+
             <div class="chart-container">
                 <h3>Pedidos por Dia da Semana</h3>
                 <canvas id="chartDias" style="max-height: 400px;"></canvas>
@@ -279,6 +301,24 @@
 
     <script>
         let csvData = [];
+
+        // ══ MAPA KAM → DIRETORIA
+        // Preencher/corrigir conforme a estrutura real da equipe.
+        // KAMs não mapeados aqui caem em "Não mapeado" nos gráficos de Diretoria.
+        const KAM_TO_DIRETORIA = {
+            'Felipe Hanke': 'Mobility',
+            'Bruno Reis': 'Mobility',
+            // 'Leonardo Dib': 'Solar',
+            // 'Kariny Maciel': 'Solar',
+            // 'Fabiam Lourenco': 'Solar',
+            // 'Anna Julia': 'Solar',
+            // 'Beatriz Sales': 'Solar',
+            // 'Wilton Moura': 'Projetos',
+            // 'Mateus Armando': 'Projetos',
+            // 'Camila Mendoza': 'Latam',
+            // 'Vinicius Ferreira': 'Projetos',
+            // 'Marcelo Leite': 'Projetos',
+        };
 
         // ===============================================
         // FUNÇÕES DE PARSING CSV
@@ -302,7 +342,8 @@
                 dataReceb: headers.findIndex(h => h.includes('data pedido recebido')),
                 dataCompl: headers.findIndex(h => h.includes('data pedido completo')),
                 dataEnvio: headers.findIndex(h => h.includes('data envio faturamento')),
-                pendencias: headers.findIndex(h => h.includes('quais') && h.includes('pendências'))
+                pendencias: headers.findIndex(h => h.includes('quais') && h.includes('pendências')),
+                warehouse: headers.findIndex(h => h.includes('warehouse'))
             };
 
             console.log('🔍 Colunas encontradas:', colMap);
@@ -320,7 +361,8 @@
                     dataReceb: cols[colMap.dataReceb]?.trim() || '',
                     dataCompl: cols[colMap.dataCompl]?.trim() || '',
                     dataEnvio: cols[colMap.dataEnvio]?.trim() || '',
-                    pendencias: cols[colMap.pendencias]?.trim() || ''
+                    pendencias: cols[colMap.pendencias]?.trim() || '',
+                    warehouse: cols[colMap.warehouse]?.trim() || ''
                 });
             }
 
@@ -392,7 +434,9 @@
                     'Obs Pendências': obs.kam,
                     'SLA Compl→Envio': slaComplEnvio,
                     'Obs SM': obs.sm,
-                    Status: status
+                    Status: status,
+                    Warehouse: row.warehouse,
+                    Diretoria: KAM_TO_DIRETORIA[row.kam] || 'Não mapeado'
                 });
             }
 
@@ -526,8 +570,151 @@
             event.target.classList.add('active');
             
             if (tab === 'analise') {
-                setTimeout(() => drawChart(), 100);
+                setTimeout(() => {
+                    drawChart();
+                    drawChartStatus();
+                    drawChartDiretoria();
+                    drawChartUnidade();
+                    drawChartTendencia();
+                }, 100);
             }
+        }
+
+        // ══ GRÁFICO: Distribuição por Status (horizontal, mais importante)
+        function drawChartStatus(){
+            const ctx = document.getElementById('chartStatus');
+            if (!ctx) return;
+            const enviado = csvData.filter(p => p.Status === 'ENVIADO PARA FATURAMENTO (PD)').length;
+            const pendComercial = csvData.filter(p => p.Status === 'PENDÊNCIA DO VENDEDOR').length;
+            const analiseSM = csvData.filter(p => p.Status === 'EM ANÁLISE (SM)').length;
+
+            if (window.chartStatusInstance) window.chartStatusInstance.destroy();
+            window.chartStatusInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Enviado para PD', 'Pendência Comercial', 'Em Análise SM'],
+                    datasets: [{
+                        data: [enviado, pendComercial, analiseSM],
+                        backgroundColor: ['#16a34a', '#dc2626', '#f59e0b'],
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true } }
+                }
+            });
+        }
+
+        // ══ GRÁFICO: Pedidos por Diretoria (horizontal)
+        function drawChartDiretoria(){
+            const ctx = document.getElementById('chartDiretoria');
+            if (!ctx) return;
+            const counts = {};
+            csvData.forEach(p => {
+                const d = p.Diretoria || 'Não mapeado';
+                counts[d] = (counts[d] || 0) + 1;
+            });
+            const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+            const labels = sorted.map(s => s[0]);
+            const data = sorted.map(s => s[1]);
+
+            if (window.chartDiretoriaInstance) window.chartDiretoriaInstance.destroy();
+            window.chartDiretoriaInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{ data: data, backgroundColor: '#3b82f6', borderRadius: 4 }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true } }
+                }
+            });
+        }
+
+        // ══ GRÁFICO: Pedidos por Unidade (Warehouse)
+        function drawChartUnidade(){
+            const ctx = document.getElementById('chartUnidade');
+            if (!ctx) return;
+            const counts = {};
+            csvData.forEach(p => {
+                const w = p.Warehouse || 'Não informado';
+                counts[w] = (counts[w] || 0) + 1;
+            });
+            const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+            const labels = sorted.map(s => s[0]);
+            const data = sorted.map(s => s[1]);
+
+            if (window.chartUnidadeInstance) window.chartUnidadeInstance.destroy();
+            window.chartUnidadeInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{ data: data, backgroundColor: '#8b5cf6', borderRadius: 4 }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { beginAtZero: true } }
+                }
+            });
+        }
+
+        // ══ GRÁFICO: Tendência últimos 30 dias (por semana, baseado em Data Pedido Recebido)
+        function drawChartTendencia(){
+            const ctx = document.getElementById('chartTendencia');
+            if (!ctx) return;
+
+            const hoje = new Date();
+            const limite = new Date();
+            limite.setDate(hoje.getDate() - 30);
+
+            // Agrupar por semana (Semana 1 = mais antiga, Semana 4 = mais recente)
+            const semanas = [0, 0, 0, 0];
+            csvData.forEach(p => {
+                if (!p['Data Pedido Recebido']) return;
+                const partes = p['Data Pedido Recebido'].split('/');
+                if (partes.length !== 3) return;
+                const data = new Date(partes[2], partes[1]-1, partes[0]);
+                if (isNaN(data) || data < limite || data > hoje) return;
+                const diasAtras = Math.floor((hoje - data) / (1000*60*60*24));
+                const semanaIdx = Math.min(3, Math.floor(diasAtras / 7));
+                // Semana 0 = mais recente (últimos 7 dias) → inverter para Semana 4
+                semanas[3 - semanaIdx]++;
+            });
+
+            if (window.chartTendenciaInstance) window.chartTendenciaInstance.destroy();
+            window.chartTendenciaInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4'],
+                    datasets: [{
+                        label: 'Pedidos Recebidos',
+                        data: semanas,
+                        borderColor: '#1976d2',
+                        backgroundColor: 'rgba(25,118,210,0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#1976d2'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                }
+            });
         }
 
         function drawChart() {
