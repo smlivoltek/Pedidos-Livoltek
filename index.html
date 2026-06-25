@@ -190,11 +190,16 @@
             border: 1px solid #eef0f2;
         }
         .chart-container h3 {
-            margin-bottom: 20px;
+            margin-bottom: 4px;
             font-size: 15px;
             font-weight: 600;
             color: #1f2937;
             letter-spacing: 0.2px;
+        }
+        .chart-subtitle {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 16px;
         }
         .row-2col {
             display: grid;
@@ -298,19 +303,27 @@
                 <canvas id="chartPendencias" style="max-height: 360px;"></canvas>
             </div>
 
-            <!-- Linha 4 — Indicadores Estratégicos -->
+            <!-- Linha 4 — Top 10 Produtos Mais Vendidos -->
+            <div class="chart-container" style="margin-bottom:24px">
+                <h3>Top 10 Produtos Mais Vendidos</h3>
+                <canvas id="chartTopProdutos" style="max-height: 320px;"></canvas>
+            </div>
+
+            <!-- Linha 5 — Origem dos Produtos (volume) x Pedidos por Unidade (contagem) -->
             <div class="row-2col" style="margin-bottom:24px">
                 <div class="chart-container">
-                    <h3>Top 10 Produtos Mais Vendidos</h3>
-                    <canvas id="chartTopProdutos" style="max-height: 320px;"></canvas>
+                    <h3>Origem dos Produtos Expedidos</h3>
+                    <p class="chart-subtitle">Baseado na quantidade de itens expedidos.</p>
+                    <canvas id="chartUnidade" style="max-height: 320px;"></canvas>
                 </div>
                 <div class="chart-container">
-                    <h3>Origem dos Produtos</h3>
-                    <canvas id="chartUnidade" style="max-height: 320px;"></canvas>
+                    <h3>Pedidos Processados por Unidade</h3>
+                    <p class="chart-subtitle">Baseado na quantidade de pedidos.</p>
+                    <canvas id="chartPedidosUnidade" style="max-height: 320px;"></canvas>
                 </div>
             </div>
 
-            <!-- Linha 5 -->
+            <!-- Linha 6 -->
             <div class="chart-container">
                 <h3>Pedidos por Dia da Semana</h3>
                 <canvas id="chartDias" style="max-height: 360px;"></canvas>
@@ -672,6 +685,7 @@
                     drawChartPendencias();
                     drawChartTopProdutos();
                     drawChartUnidade();
+                    drawChartPedidosUnidade();
                 }, 100);
             }
         }
@@ -780,6 +794,35 @@
         // Mede APENAS percentual (%) de produtos expedidos por armazém — não quantidade.
         // Reflete de onde o estoque realmente saiu; métrica mais útil pro comercial
         // do que contar pedidos, já que um único pedido grande pode concentrar volume.
+        // ══ GRÁFICO: Pedidos Processados por Unidade
+        // Conta PEDIDOS ÚNICOS (não soma de itens) por armazém — métrica diferente
+        // da "Origem dos Produtos": aqui Curitiba pode liderar mesmo com menor volume de produtos,
+        // pois processa mais pedidos. As duas métricas contam histórias diferentes e complementares.
+        function drawChartPedidosUnidade(){
+            const ctx = document.getElementById('chartPedidosUnidade');
+            if (!ctx) return;
+
+            const countPorWh = {};
+            csvData.forEach(p => {
+                const w = p.Warehouse || 'Não informado';
+                countPorWh[w] = (countPorWh[w] || 0) + 1;
+            });
+
+            const sorted = Object.entries(countPorWh).sort((a,b) => b[1]-a[1]);
+            const labels = sorted.map(s => s[0]).reverse();
+            const data = sorted.map(s => s[1]).reverse();
+
+            if (window.chartPedidosUnidadeInstance) window.chartPedidosUnidadeInstance.destroy();
+            window.chartPedidosUnidadeInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{ data: data, backgroundColor: '#2563eb', borderRadius: 4 }]
+                },
+                options: PADRAO_CHART_OPTIONS('Quantidade de pedidos')
+            });
+        }
+
         function drawChartUnidade(){
             const ctx = document.getElementById('chartUnidade');
             if (!ctx) return;
