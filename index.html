@@ -206,6 +206,45 @@
             grid-template-columns: 1fr 1fr;
             gap: 20px;
         }
+        .lang-selector { position: relative; }
+        .lang-btn {
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 8px 14px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .lang-btn:hover { border-color: #9ca3af; }
+        .lang-menu {
+            display: none;
+            position: absolute;
+            top: 110%;
+            right: 0;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            min-width: 160px;
+            z-index: 50;
+            overflow: hidden;
+        }
+        .lang-menu.open { display: block; }
+        .lang-menu button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 10px 14px;
+            font-size: 13px;
+            border: none;
+            background: white;
+            cursor: pointer;
+        }
+        .lang-menu button:hover { background: #f3f4f6; }
         @media (max-width: 900px) {
             .row-2col { grid-template-columns: 1fr; }
         }
@@ -251,56 +290,69 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📊 Painel de Status de Pedidos</h1>
-            <p class="subtitle">Livoltek - Sales Management | Atualização diária</p>
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+                <div>
+                    <h1 data-i18n="title">📊 Painel de Status de Pedidos</h1>
+                    <p class="subtitle" data-i18n="subtitle">Livoltek - Sales Management | Atualização diária</p>
+                </div>
+                <div class="lang-selector">
+                    <button class="lang-btn" onclick="toggleLangMenu()">
+                        🌐 <span id="langCurrentLabel">Português</span> <span style="font-size:10px">▾</span>
+                    </button>
+                    <div id="langMenu" class="lang-menu">
+                        <button onclick="setLang('pt')">🇧🇷 Português</button>
+                        <button onclick="setLang('en')">🇺🇸 English</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div id="loadingMsg" class="loading">⏳ Carregando dados do CSV...</div>
+        <div id="loadingMsg" class="loading" data-i18n="loading">⏳ Carregando dados do CSV...</div>
 
         <!-- CARDS PRINCIPAIS - TELA INICIAL -->
         <div id="cardsMain" class="cards" style="margin-bottom: 30px; display: none;">
             <div class="card">
-                <h3>Total de Pedidos</h3>
+                <h3 data-i18n="cardTotal">Total de Pedidos</h3>
                 <div class="number" id="cardTotal">0</div>
             </div>
             <div class="card vendedor">
-                <h3>Aguardando Vendedor</h3>
+                <h3 data-i18n="cardAguardando">Aguardando Vendedor</h3>
                 <div class="number" id="cardAguardando">0</div>
             </div>
             <div class="card analise">
-                <h3>Em Análise (SM)</h3>
+                <h3 data-i18n="cardAnalise">Em Análise (SM)</h3>
                 <div class="number" id="cardAnalise">0</div>
             </div>
             <div class="card faturamento">
-                <h3>Enviado para Faturamento (PD)</h3>
+                <h3 data-i18n="cardFaturamento">Enviado para Faturamento (PD)</h3>
                 <div class="number" id="cardFaturamento">0</div>
             </div>
         </div>
 
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('pedidos', event)">Pedidos</button>
-            <button class="tab-btn" onclick="switchTab('analise', event)">Análises</button>
+            <button class="tab-btn active" onclick="switchTab('pedidos', event)" data-i18n="tabPedidos">Pedidos</button>
+            <button class="tab-btn" onclick="switchTab('analise', event)" data-i18n="tabAnalise">Análises</button>
         </div>
 
         <div id="tabPedidos" class="tab-content active">
             <div class="filters">
                 <div class="filter-group">
-                    <label>Pedido:</label>
-                    <input type="text" id="filterPedido" placeholder="Buscar nº do pedido..." oninput="renderTable()" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;min-width:200px">
+                    <label data-i18n="filterPedidoLabel">Pedido:</label>
+                    <input type="text" id="filterPedido" placeholder="Buscar nº do pedido..." data-i18n-placeholder="filterPedidoPlaceholder" oninput="renderTable()" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;min-width:200px">
                 </div>
                 <div class="filter-group">
-                    <label>KAM:</label>
+                    <label data-i18n="filterKAMLabel">KAM:</label>
                     <select id="filterKAM" onchange="renderTable()">
-                        <option value="">Todos</option>
+                        <option value="" data-i18n="optionTodos">Todos</option>
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label>Status:</label>
+                    <label data-i18n="filterStatusLabel">Status:</label>
                     <select id="filterStatus" onchange="renderTable()">
-                        <option value="">Todos</option>
-                        <option value="PENDÊNCIA DO VENDEDOR">Aguardando Vendedor</option>
-                        <option value="EM ANÁLISE (SM)">Em Análise (SM)</option>
-                        <option value="ENVIADO PARA FATURAMENTO (PD)">Enviado para Faturamento</option>
+                        <option value="" data-i18n="optionTodos">Todos</option>
+                        <option value="PENDÊNCIA DO VENDEDOR" data-i18n="cardAguardando">Aguardando Vendedor</option>
+                        <option value="EM ANÁLISE (SM)" data-i18n="cardAnalise">Em Análise (SM)</option>
+                        <option value="ENVIADO PARA FATURAMENTO (PD)" data-i18n="statusEnviadoPD">Enviado para Faturamento</option>
                     </select>
                 </div>
             </div>
@@ -313,50 +365,195 @@
             <!-- Linha 2 — Indicadores Complementares -->
             <div class="cards" style="margin-bottom: 24px;">
                 <div class="card">
-                    <h3>Total de Pedidos Únicos</h3>
+                    <h3 data-i18n="cardTotalUnicos">Total de Pedidos Únicos</h3>
                     <div class="number" id="cardTotalAnalise">0</div>
                 </div>
                 <div class="card vendedor">
-                    <h3>Pedidos com Pendências Enviadas para SM</h3>
+                    <h3 data-i18n="cardPendenciasEnviadas">Pedidos com Pendências Enviadas para SM</h3>
                     <div class="number" id="cardSLAVendedor">0</div>
                 </div>
             </div>
 
             <!-- Linha 3 — Principais Pendências -->
             <div class="chart-container" style="margin-bottom:24px">
-                <h3>Top 10 Pendências dos Pedidos</h3>
+                <h3 data-i18n="chartPendenciasTitle">Top 10 Pendências dos Pedidos</h3>
                 <canvas id="chartPendencias" style="max-height: 360px;"></canvas>
             </div>
 
             <!-- Linha 4 — Top 10 Produtos Mais Vendidos -->
             <div class="chart-container" style="margin-bottom:24px">
-                <h3>Top 10 Produtos Mais Vendidos</h3>
+                <h3 data-i18n="chartProdutosTitle">Top 10 Produtos Mais Vendidos</h3>
                 <canvas id="chartTopProdutos" style="max-height: 320px;"></canvas>
             </div>
 
             <!-- Linha 5 — Origem dos Produtos (volume) x Pedidos por Unidade (contagem) -->
             <div class="row-2col" style="margin-bottom:24px">
                 <div class="chart-container">
-                    <h3>Origem dos Produtos Expedidos</h3>
-                    <p class="chart-subtitle">Baseado na quantidade de itens expedidos.</p>
+                    <h3 data-i18n="chartOrigemTitle">Origem dos Produtos Expedidos</h3>
+                    <p class="chart-subtitle" data-i18n="chartOrigemSubtitle">Baseado na quantidade de itens expedidos.</p>
                     <canvas id="chartUnidade" style="max-height: 320px;"></canvas>
                 </div>
                 <div class="chart-container">
-                    <h3>Pedidos Processados por Unidade</h3>
-                    <p class="chart-subtitle">Baseado na quantidade de pedidos.</p>
+                    <h3 data-i18n="chartPedidosUnidadeTitle">Pedidos Processados por Unidade</h3>
+                    <p class="chart-subtitle" data-i18n="chartPedidosUnidadeSubtitle">Baseado na quantidade de pedidos.</p>
                     <canvas id="chartPedidosUnidade" style="max-height: 320px;"></canvas>
                 </div>
             </div>
 
             <!-- Linha 6 -->
             <div class="chart-container">
-                <h3>Pedidos por Dia da Semana</h3>
+                <h3 data-i18n="chartDiasTitle">Pedidos por Dia da Semana</h3>
                 <canvas id="chartDias" style="max-height: 360px;"></canvas>
             </div>
         </div>
     </div>
 
     <script>
+        // ══════════════════════════════════════════════════
+        // INTERNACIONALIZAÇÃO (i18n)
+        // Traduz APENAS a interface (menus, cards, títulos, colunas, botões,
+        // status, mensagens). Os dados do CSV (nomes de cliente, KAM, produto,
+        // pendências escritas pelo time) permanecem sempre no idioma original.
+        // ══════════════════════════════════════════════════
+        const I18N = {
+            pt: {
+                title: '📊 Painel de Status de Pedidos',
+                subtitle: 'Livoltek - Sales Management | Atualização diária',
+                cardTotal: 'Total de Pedidos',
+                cardAguardando: 'Aguardando Vendedor',
+                cardAnalise: 'Em Análise (SM)',
+                cardFaturamento: 'Enviado para Faturamento (PD)',
+                tabPedidos: 'Pedidos',
+                tabAnalise: 'Análises',
+                filterPedidoLabel: 'Pedido:',
+                filterPedidoPlaceholder: 'Buscar nº do pedido...',
+                filterKAMLabel: 'KAM:',
+                filterStatusLabel: 'Status:',
+                optionTodos: 'Todos',
+                statusEnviadoPD: 'Enviado para Faturamento',
+                cardTotalUnicos: 'Total de Pedidos Únicos',
+                cardPendenciasEnviadas: 'Pedidos com Pendências Enviadas para SM',
+                chartPendenciasTitle: 'Top 10 Pendências dos Pedidos',
+                chartProdutosTitle: 'Top 10 Produtos Mais Vendidos',
+                chartOrigemTitle: 'Origem dos Produtos Expedidos',
+                chartOrigemSubtitle: 'Baseado na quantidade de itens expedidos.',
+                chartPedidosUnidadeTitle: 'Pedidos Processados por Unidade',
+                chartPedidosUnidadeSubtitle: 'Baseado na quantidade de pedidos.',
+                chartDiasTitle: 'Pedidos por Dia da Semana',
+                // Colunas da tabela
+                colKAM: 'KAM',
+                colNumPedido: 'Nº Pedido',
+                colPrimeiroEnvio: 'Primeiro Envio à SM',
+                colEnvioFinal: 'Envio Final à SM',
+                colTempoRegularizacao: 'Tempo de Regularização do Vendedor',
+                colPendencias: 'Pendências do Pedido',
+                colEnviadoPD: 'Enviado para PD',
+                colStatus: 'Status',
+                // Mensagens
+                loading: '⏳ Carregando dados do CSV...',
+                errorLoad: '⚠️ Erro ao carregar dados',
+                tryF5: 'Tente F5.',
+                emptyState: 'Nenhum pedido encontrado.',
+                // Eixos dos gráficos
+                axisQtdPedidos: 'Quantidade de pedidos',
+                axisQtdVendida: 'Quantidade vendida',
+                axisPctExpedidos: '% de produtos expedidos',
+                weekDays: ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'],
+                langLabel: 'Português'
+            },
+            en: {
+                title: '📊 Order Status Dashboard',
+                subtitle: 'Livoltek - Sales Management | Daily update',
+                cardTotal: 'Total Orders',
+                cardAguardando: 'Awaiting Sales Rep',
+                cardAnalise: 'Under Review (SM)',
+                cardFaturamento: 'Sent for Billing (PD)',
+                tabPedidos: 'Orders',
+                tabAnalise: 'Analytics',
+                filterPedidoLabel: 'Order:',
+                filterPedidoPlaceholder: 'Search order number...',
+                filterKAMLabel: 'KAM:',
+                filterStatusLabel: 'Status:',
+                optionTodos: 'All',
+                statusEnviadoPD: 'Sent for Billing',
+                cardTotalUnicos: 'Total Unique Orders',
+                cardPendenciasEnviadas: 'Orders with Pending Issues Sent to SM',
+                chartPendenciasTitle: 'Top 10 Order Pending Issues',
+                chartProdutosTitle: 'Top 10 Best-Selling Products',
+                chartOrigemTitle: 'Origin of Shipped Products',
+                chartOrigemSubtitle: 'Based on the quantity of items shipped.',
+                chartPedidosUnidadeTitle: 'Orders Processed by Unit',
+                chartPedidosUnidadeSubtitle: 'Based on the number of orders.',
+                chartDiasTitle: 'Orders by Day of the Week',
+                colKAM: 'KAM',
+                colNumPedido: 'Order #',
+                colPrimeiroEnvio: 'First Sent to SM',
+                colEnvioFinal: 'Final Sent to SM',
+                colTempoRegularizacao: 'Sales Rep Resolution Time',
+                colPendencias: 'Order Pending Issues',
+                colEnviadoPD: 'Sent for Billing',
+                colStatus: 'Status',
+                loading: '⏳ Loading CSV data...',
+                errorLoad: '⚠️ Error loading data',
+                tryF5: 'Try F5.',
+                emptyState: 'No orders found.',
+                axisQtdPedidos: 'Number of orders',
+                axisQtdVendida: 'Quantity sold',
+                axisPctExpedidos: '% of shipped products',
+                weekDays: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+                langLabel: 'English'
+            }
+        };
+
+        let currentLang = localStorage.getItem('livoltek_lang') || 'pt';
+
+        function t(key){
+            return (I18N[currentLang] && I18N[currentLang][key]) ?? (I18N.pt[key] ?? key);
+        }
+
+        function applyTranslations(){
+            document.documentElement.lang = currentLang === 'pt' ? 'pt-BR' : 'en';
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                el.textContent = t(el.getAttribute('data-i18n'));
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
+            });
+            const labelEl = document.getElementById('langCurrentLabel');
+            if (labelEl) labelEl.textContent = t('langLabel');
+        }
+
+        function toggleLangMenu(){
+            const menu = document.getElementById('langMenu');
+            if (menu) menu.classList.toggle('open');
+        }
+
+        function setLang(lang){
+            currentLang = lang;
+            localStorage.setItem('livoltek_lang', lang);
+            applyTranslations();
+            document.getElementById('langMenu')?.classList.remove('open');
+            // Re-renderiza tabela e gráficos para que textos dinâmicos (cabeçalho da tabela,
+            // mensagens vazias, eixos de gráfico) também troquem de idioma — sem alterar os dados.
+            if (typeof renderTable === 'function' && csvData.length) renderTable();
+            if (typeof updateUI === 'function' && csvData.length) updateUI();
+            const analiseTab = document.getElementById('tabAnalise');
+            if (analiseTab && analiseTab.classList.contains('active') && csvData.length) {
+                drawChart();
+                drawChartPendencias();
+                drawChartTopProdutos();
+                drawChartUnidade();
+                drawChartPedidosUnidade();
+            }
+        }
+
+        document.addEventListener('click', (e) => {
+            const sel = document.querySelector('.lang-selector');
+            if (sel && !sel.contains(e.target)) {
+                document.getElementById('langMenu')?.classList.remove('open');
+            }
+        });
+
         let csvData = [];
 
         // ══ MAPA KAM → DIRETORIA
@@ -514,7 +711,7 @@
                 .catch(err => {
                     console.error('❌ Erro ao carregar CSV:', err);
                     document.getElementById('loadingMsg').innerHTML = 
-                        `⚠️ Erro ao carregar dados: ${err.message}. Tente F5.`;
+                        `${t('errorLoad')}: ${err.message}. ${t('tryF5')}`;
                 });
         }
 
@@ -618,7 +815,7 @@
         function updateUI() {
             if (csvData.length === 0) {
                 document.getElementById('tableContainer').innerHTML = 
-                    '<div class="empty-state">Nenhum pedido encontrado.</div>';
+                    `<div class="empty-state">${t('emptyState')}</div>`;
                 return;
             }
 
@@ -667,18 +864,23 @@
 
             if (filtered.length === 0) {
                 document.getElementById('tableContainer').innerHTML = 
-                    '<div class="empty-state">Nenhum pedido encontrado.</div>';
+                    `<div class="empty-state">${t('emptyState')}</div>`;
                 return;
             }
 
             let html = '<table><tr>';
-            html += '<th>KAM</th><th>Nº Pedido</th><th>Primeiro Envio à SM</th><th>Envio Final à SM</th>';
-            html += '<th>Tempo de Regularização</th><th>Pendências do Pedido</th>';
-            html += '<th>Enviado para PD</th><th>Status</th></tr>';
+            html += `<th>${t('colKAM')}</th><th>${t('colNumPedido')}</th><th>${t('colPrimeiroEnvio')}</th><th>${t('colEnvioFinal')}</th>`;
+            html += `<th>${t('colTempoRegularizacao')}</th><th>${t('colPendencias')}</th>`;
+            html += `<th>${t('colEnviadoPD')}</th><th>${t('colStatus')}</th></tr>`;
 
             filtered.forEach(p => {
                 const statusClass = p.Status === 'PENDÊNCIA DO VENDEDOR' ? 'status-vendedor' :
                                    p.Status === 'EM ANÁLISE (SM)' ? 'status-analise' : 'status-faturamento';
+                // Texto do badge traduzido (visual apenas) — o valor interno p.Status
+                // permanece em português para não quebrar a lógica de filtros/contagens.
+                const statusLabel = p.Status === 'PENDÊNCIA DO VENDEDOR' ? t('cardAguardando') :
+                                   p.Status === 'EM ANÁLISE (SM)' ? t('cardAnalise') :
+                                   p.Status === 'ENVIADO PARA FATURAMENTO (PD)' ? t('statusEnviadoPD') : (p.Status || '-');
                 html += '<tr>';
                 html += `<td>${p.KAM || '-'}</td>`;
                 html += `<td><strong>${p['Nº DO PEDIDO'] || '-'}</strong></td>`;
@@ -687,7 +889,7 @@
                 html += `<td class="sla">${p['SLA Receb→Compl'] !== '' ? p['SLA Receb→Compl'] + 'd' : '-'}</td>`;
                 html += `<td class="obs-small">${p['Obs Pendências'] || '-'}</td>`;
                 html += `<td>${p['Data Envio Faturamento'] || '-'}</td>`;
-                html += `<td><span class="status ${statusClass}">${p.Status || '-'}</span></td>`;
+                html += `<td><span class="status ${statusClass}">${statusLabel}</span></td>`;
                 html += '</tr>';
             });
             html += '</table>';
@@ -776,7 +978,7 @@
                     labels: labels,
                     datasets: [{ data: data, backgroundColor: '#dc2626', borderRadius: 4 }]
                 },
-                options: PADRAO_CHART_OPTIONS('Quantidade de pedidos')
+                options: PADRAO_CHART_OPTIONS(t('axisQtdPedidos'))
             });
         }
 
@@ -800,7 +1002,7 @@
             const data = ordenado.map(p => p.qtdTotal);
 
             if (window.chartTopProdutosInstance) window.chartTopProdutosInstance.destroy();
-            const opts = PADRAO_CHART_OPTIONS('Quantidade vendida');
+            const opts = PADRAO_CHART_OPTIONS(t('axisQtdVendida'));
             opts.plugins.tooltip.callbacks = {
                 title: (items) => ordenado[items[0].dataIndex].codigo,
                 afterTitle: (items) => ordenado[items[0].dataIndex].descricao
@@ -844,7 +1046,7 @@
                     labels: labels,
                     datasets: [{ data: data, backgroundColor: '#2563eb', borderRadius: 4 }]
                 },
-                options: PADRAO_CHART_OPTIONS('Quantidade de pedidos')
+                options: PADRAO_CHART_OPTIONS(t('axisQtdPedidos'))
             });
         }
 
@@ -867,7 +1069,7 @@
             const percentuais = sorted.map(s => totalGeral > 0 ? Math.round((s[1]/totalGeral)*100) : 0).reverse();
 
             if (window.chartUnidadeInstance) window.chartUnidadeInstance.destroy();
-            const opts = PADRAO_CHART_OPTIONS('% de produtos expedidos');
+            const opts = PADRAO_CHART_OPTIONS(t('axisPctExpedidos'));
             opts.scales.x.max = 100;
             opts.scales.x.ticks.callback = (v) => v + '%';
             opts.plugins.tooltip.callbacks = { label: (item) => `${item.parsed.x}%` };
@@ -922,7 +1124,7 @@
             // Cor única (azul) para os dias úteis — consistente com a paleta padrão.
             // Fins de semana em tom mais claro só para indicar menor relevância operacional.
             const colors = ['#93c5fd', '#2563eb', '#2563eb', '#2563eb', '#2563eb', '#2563eb', '#93c5fd'];
-            const labels = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+            const labels = t('weekDays');
 
             if (window.chartInstance) {
                 window.chartInstance.destroy();
@@ -991,7 +1193,10 @@
         }
 
         // Carrega dados ao inicializar
-        document.addEventListener('DOMContentLoaded', fetchAndProcessCSV);
+        document.addEventListener('DOMContentLoaded', () => {
+            applyTranslations();
+            fetchAndProcessCSV();
+        });
     </script>
 </body>
 </html>
