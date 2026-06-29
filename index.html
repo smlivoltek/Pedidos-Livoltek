@@ -1,0 +1,1249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Painel de Status de Pedidos - Livoltek</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        /* ══ PALETA PADRÃO (4 cores) ══
+           Azul    #2563eb — geral, produtos, origem, tendências
+           Verde   #16a34a — positivo, enviado/concluído
+           Laranja #f59e0b — em andamento, atenção
+           Vermelho#dc2626 — pendências, alertas               */
+        :root{
+            --cor-azul: #2563eb;
+            --cor-verde: #16a34a;
+            --cor-laranja: #f59e0b;
+            --cor-vermelho: #dc2626;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            color: #333;
+        }
+        .container { max-width: 1600px; margin: 0 auto; }
+        .header { margin-bottom: 30px; }
+        /* ══ IDENTIDADE VISUAL — SM Livoltek ══
+           Marca fixa em todos os dashboards da área; abaixo dela, o nome do relatório
+           específico muda (Painel de Pedidos, Dashboard de Estoque, etc.) */
+        .brand-mark {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--cor-azul);
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 5px;
+            padding: 3px 10px;
+            margin-bottom: 10px;
+        }
+        h1 { 
+            font-size: 28px; 
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: #111827; 
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+        .loading {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            color: #856404;
+            font-size: 13px;
+        }
+        .cards { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+            gap: 20px; 
+            margin-bottom: 30px;
+        }
+        .card {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            text-align: center;
+            border-left: 4px solid var(--cor-azul);
+        }
+        .card.vendedor { border-left-color: var(--cor-vermelho); }
+        .card.analise { border-left-color: var(--cor-laranja); }
+        .card.faturamento { border-left-color: var(--cor-verde); }
+        .card h3 { 
+            font-size: 12px; 
+            color: #999; 
+            margin-bottom: 12px; 
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        .card .number { 
+            font-size: 44px; 
+            font-weight: 800; 
+            letter-spacing: -0.02em;
+            color: #111827;
+        }
+        .tabs { 
+            display: flex; 
+            gap: 10px; 
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+        .tab-btn {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: #666;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover { color: #333; }
+        .tab-btn.active { 
+            color: #0066cc;
+            border-bottom-color: #0066cc;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .filters { 
+            display: flex; 
+            gap: 20px; 
+            margin-bottom: 20px; 
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .filter-group { 
+            display: flex; 
+            gap: 10px; 
+            align-items: center;
+        }
+        .filter-group label { 
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .filter-group select { 
+            padding: 8px 12px; 
+            border: 1px solid #ddd; 
+            border-radius: 4px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+        .filter-group select:hover {
+            border-color: #999;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            max-height: 70vh; /* cabeçalho fixo: rolagem interna acima dessa altura */
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th { 
+            background: #f8f8f8;
+            padding: 12px 8px; 
+            text-align: left; 
+            font-weight: 600;
+            border-bottom: 2px solid #eee;
+            font-size: 12px;
+            color: #555;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        td { 
+            padding: 10px 8px; 
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 13px;
+        }
+        tr:hover { background: #fafafa; }
+        .status { 
+            padding: 6px 10px; 
+            border-radius: 4px; 
+            font-size: 11px; 
+            font-weight: 600;
+            display: inline-block;
+            white-space: nowrap;
+        }
+        .status-vendedor { 
+            background: #fee2e2; 
+            color: var(--cor-vermelho);
+        }
+        .status-analise { 
+            background: #fef3c7; 
+            color: var(--cor-laranja);
+        }
+        .status-faturamento { 
+            background: #dcfce7; 
+            color: var(--cor-verde);
+        }
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+            font-size: 16px;
+        }
+        .chart-container {
+            background: white;
+            padding: 20px 24px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+            border: 1px solid #eef0f2;
+        }
+        .chart-container h3 {
+            margin-bottom: 4px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #1f2937;
+            letter-spacing: 0.2px;
+        }
+        .chart-subtitle {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 16px;
+        }
+        .row-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .lang-selector { position: relative; }
+        .lang-btn {
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 8px 14px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        .lang-btn:hover { border-color: #9ca3af; }
+        .lang-menu {
+            display: none;
+            position: absolute;
+            top: 110%;
+            right: 0;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            min-width: 160px;
+            z-index: 50;
+            overflow: hidden;
+        }
+        .lang-menu.open { display: block; }
+        .lang-menu button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 10px 14px;
+            font-size: 13px;
+            border: none;
+            background: white;
+            cursor: pointer;
+        }
+        .lang-menu button:hover { background: #f3f4f6; }
+        @media (max-width: 900px) {
+            .row-2col { grid-template-columns: 1fr; }
+        }
+
+        /* ══ RESPONSIVO MOBILE (≤600px) ══ */
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            h1 { font-size: 22px; }
+            .cards { grid-template-columns: 1fr; gap: 12px; }
+            .card { padding: 16px; }
+            .card .number { font-size: 32px; }
+            .tabs { gap: 4px; }
+            .tab-btn { padding: 10px 12px; font-size: 13px; }
+
+            /* Filtros: empilhar em coluna, ocupar largura total */
+            .filters { flex-direction: column; align-items: stretch; gap: 12px; }
+            .filter-group { flex-direction: column; align-items: stretch; gap: 4px; }
+            .filter-group label { font-size: 13px; }
+            .filter-group select,
+            .filter-group input { width: 100%; min-width: 0 !important; }
+
+            /* Tabela: fonte menor e padding reduzido para caber mais em tela estreita */
+            th, td { padding: 8px 6px; font-size: 12px; }
+            .obs-small { max-width: 120px; font-size: 11px; }
+
+            .chart-container { padding: 14px 16px; }
+            .chart-container h3 { font-size: 14px; }
+        }
+        .sla { 
+            text-align: center;
+            font-weight: 600;
+            color: #333;
+        }
+        .obs-small {
+            font-size: 12px;
+            color: #666;
+            max-width: 180px;
+            word-wrap: break-word;
+            line-height: 1.3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+                <div>
+                    <div class="brand-mark">SM Livoltek</div>
+                    <h1 data-i18n="title">📊 Painel de Status de Pedidos</h1>
+                    <p class="subtitle" data-i18n="subtitle">Livoltek - Sales Management | Atualização diária</p>
+                </div>
+                <div class="lang-selector">
+                    <button class="lang-btn" onclick="toggleLangMenu()">
+                        🌐 <span id="langCurrentLabel">Português</span> <span style="font-size:10px">▾</span>
+                    </button>
+                    <div id="langMenu" class="lang-menu">
+                        <button onclick="setLang('pt')">🇧🇷 Português</button>
+                        <button onclick="setLang('en')">🇺🇸 English</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="loadingMsg" class="loading" data-i18n="loading">⏳ Carregando dados do CSV...</div>
+
+        <!-- CARDS PRINCIPAIS - TELA INICIAL -->
+        <div id="cardsMain" class="cards" style="margin-bottom: 30px; display: none;">
+            <div class="card">
+                <h3 data-i18n="cardTotal">Total de Pedidos</h3>
+                <div class="number" id="cardTotal">0</div>
+            </div>
+            <div class="card vendedor">
+                <h3 data-i18n="cardAguardando">Aguardando Vendedor</h3>
+                <div class="number" id="cardAguardando">0</div>
+            </div>
+            <div class="card analise">
+                <h3 data-i18n="cardAnalise">Em Análise (SM)</h3>
+                <div class="number" id="cardAnalise">0</div>
+            </div>
+            <div class="card faturamento">
+                <h3 data-i18n="cardFaturamento">Enviado para Faturamento (PD)</h3>
+                <div class="number" id="cardFaturamento">0</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('pedidos', event)" data-i18n="tabPedidos">Pedidos</button>
+            <button class="tab-btn" onclick="switchTab('analise', event)" data-i18n="tabAnalise">Análises</button>
+        </div>
+
+        <div id="tabPedidos" class="tab-content active">
+            <div class="filters">
+                <div class="filter-group">
+                    <label data-i18n="filterPedidoLabel">Pedido:</label>
+                    <input type="text" id="filterPedido" placeholder="Buscar nº do pedido..." data-i18n-placeholder="filterPedidoPlaceholder" oninput="renderTable()" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;min-width:200px">
+                </div>
+                <div class="filter-group">
+                    <label data-i18n="filterKAMLabel">KAM:</label>
+                    <select id="filterKAM" onchange="renderTable()">
+                        <option value="" data-i18n="optionTodos">Todos</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label data-i18n="filterStatusLabel">Status:</label>
+                    <select id="filterStatus" onchange="renderTable()">
+                        <option value="" data-i18n="optionTodos">Todos</option>
+                        <option value="PENDÊNCIA DO VENDEDOR" data-i18n="cardAguardando">Aguardando Vendedor</option>
+                        <option value="EM ANÁLISE (SM)" data-i18n="cardAnalise">Em Análise (SM)</option>
+                        <option value="ENVIADO PARA FATURAMENTO (PD)" data-i18n="statusEnviadoPD">Enviado para Faturamento</option>
+                    </select>
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <div id="tableContainer"></div>
+            </div>
+        </div>
+
+        <div id="tabAnalise" class="tab-content">
+            <!-- Linha 2 — Indicadores Complementares -->
+            <div class="cards" style="margin-bottom: 24px;">
+                <div class="card">
+                    <h3 data-i18n="cardTotalUnicos">Total de Pedidos Únicos</h3>
+                    <div class="number" id="cardTotalAnalise">0</div>
+                </div>
+                <div class="card vendedor">
+                    <h3 data-i18n="cardPendenciasEnviadas">Pedidos com Pendências Enviadas para SM</h3>
+                    <div class="number" id="cardSLAVendedor">0</div>
+                </div>
+            </div>
+
+            <!-- Linha 3 — Principais Pendências -->
+            <div class="chart-container" style="margin-bottom:24px">
+                <h3 data-i18n="chartPendenciasTitle">Top 10 Pendências dos Pedidos</h3>
+                <canvas id="chartPendencias" style="max-height: 360px;"></canvas>
+            </div>
+
+            <!-- Linha 4 — Top 10 Produtos Mais Vendidos -->
+            <div class="chart-container" style="margin-bottom:24px">
+                <h3 data-i18n="chartProdutosTitle">Top 10 Produtos Mais Vendidos</h3>
+                <canvas id="chartTopProdutos" style="max-height: 320px;"></canvas>
+            </div>
+
+            <!-- Linha 5 — Origem dos Produtos (volume) x Pedidos por Unidade (contagem) -->
+            <div class="row-2col" style="margin-bottom:24px">
+                <div class="chart-container">
+                    <h3 data-i18n="chartOrigemTitle">Origem dos Produtos Expedidos</h3>
+                    <p class="chart-subtitle" data-i18n="chartOrigemSubtitle">Baseado na quantidade de itens expedidos.</p>
+                    <canvas id="chartUnidade" style="max-height: 320px;"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 data-i18n="chartPedidosUnidadeTitle">Pedidos Processados por Unidade</h3>
+                    <p class="chart-subtitle" data-i18n="chartPedidosUnidadeSubtitle">Baseado na quantidade de pedidos.</p>
+                    <canvas id="chartPedidosUnidade" style="max-height: 320px;"></canvas>
+                </div>
+            </div>
+
+            <!-- Linha 6 -->
+            <div class="chart-container">
+                <h3 data-i18n="chartDiasTitle">Pedidos por Dia da Semana</h3>
+                <canvas id="chartDias" style="max-height: 360px;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ══════════════════════════════════════════════════
+        // INTERNACIONALIZAÇÃO (i18n)
+        // Traduz APENAS a interface (menus, cards, títulos, colunas, botões,
+        // status, mensagens). Os dados do CSV (nomes de cliente, KAM, produto,
+        // pendências escritas pelo time) permanecem sempre no idioma original.
+        // ══════════════════════════════════════════════════
+        const I18N = {
+            pt: {
+                title: '📊 Painel de Status de Pedidos',
+                subtitle: 'Livoltek - Sales Management | Atualização diária',
+                cardTotal: 'Total de Pedidos',
+                cardAguardando: 'Aguardando Vendedor',
+                cardAnalise: 'Em Análise (SM)',
+                cardFaturamento: 'Enviado para Faturamento (PD)',
+                tabPedidos: 'Pedidos',
+                tabAnalise: 'Indicadores',
+                filterPedidoLabel: 'Pedido:',
+                filterPedidoPlaceholder: 'Buscar nº do pedido...',
+                filterKAMLabel: 'KAM:',
+                filterStatusLabel: 'Status:',
+                optionTodos: 'Todos',
+                statusEnviadoPD: 'Enviado para Faturamento',
+                cardTotalUnicos: 'Total de Pedidos Únicos',
+                cardPendenciasEnviadas: 'Pedidos com Pendências Enviadas para SM',
+                chartPendenciasTitle: 'Top 10 Pendências dos Pedidos',
+                chartProdutosTitle: 'Top 10 Produtos Mais Vendidos',
+                chartOrigemTitle: 'Origem dos Produtos Expedidos',
+                chartOrigemSubtitle: 'Baseado na quantidade de itens expedidos.',
+                chartPedidosUnidadeTitle: 'Pedidos Processados por Unidade',
+                chartPedidosUnidadeSubtitle: 'Baseado na quantidade de pedidos.',
+                chartDiasTitle: 'Pedidos por Dia da Semana',
+                // Colunas da tabela
+                colKAM: 'KAM',
+                colNumPedido: 'Nº Pedido',
+                colPrimeiroEnvio: 'Primeiro Envio à SM',
+                colEnvioFinal: 'Envio Final à SM',
+                colTempoRegularizacao: 'Tempo de Regularização do Vendedor',
+                colPendencias: 'Pendências do Pedido',
+                colEnviadoPD: 'Enviado para PD',
+                colStatus: 'Status',
+                // Mensagens
+                loading: '⏳ Carregando dados do CSV...',
+                errorLoad: '⚠️ Erro ao carregar dados',
+                tryF5: 'Tente F5.',
+                emptyState: 'Nenhum pedido encontrado.',
+                // Eixos dos gráficos
+                axisQtdPedidos: 'Quantidade de pedidos',
+                axisQtdVendida: 'Quantidade vendida',
+                axisPctExpedidos: '% de produtos expedidos',
+                weekDays: ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'],
+                langLabel: 'Português'
+            },
+            en: {
+                title: '📊 Order Status Dashboard',
+                subtitle: 'Livoltek - Sales Management | Daily update',
+                cardTotal: 'Total Orders',
+                cardAguardando: 'Awaiting Sales Rep',
+                cardAnalise: 'Under Review (SM)',
+                cardFaturamento: 'Sent for Billing (PD)',
+                tabPedidos: 'Orders',
+                tabAnalise: 'Indicators',
+                filterPedidoLabel: 'Order:',
+                filterPedidoPlaceholder: 'Search order number...',
+                filterKAMLabel: 'KAM:',
+                filterStatusLabel: 'Status:',
+                optionTodos: 'All',
+                statusEnviadoPD: 'Sent for Billing',
+                cardTotalUnicos: 'Total Unique Orders',
+                cardPendenciasEnviadas: 'Orders with Pending Issues Sent to SM',
+                chartPendenciasTitle: 'Top 10 Order Pending Issues',
+                chartProdutosTitle: 'Top 10 Best-Selling Products',
+                chartOrigemTitle: 'Origin of Shipped Products',
+                chartOrigemSubtitle: 'Based on the quantity of items shipped.',
+                chartPedidosUnidadeTitle: 'Orders Processed by Unit',
+                chartPedidosUnidadeSubtitle: 'Based on the number of orders.',
+                chartDiasTitle: 'Orders by Day of the Week',
+                colKAM: 'KAM',
+                colNumPedido: 'Order #',
+                colPrimeiroEnvio: 'First Sent to SM',
+                colEnvioFinal: 'Final Sent to SM',
+                colTempoRegularizacao: 'Sales Rep Resolution Time',
+                colPendencias: 'Order Pending Issues',
+                colEnviadoPD: 'Sent for Billing',
+                colStatus: 'Status',
+                loading: '⏳ Loading CSV data...',
+                errorLoad: '⚠️ Error loading data',
+                tryF5: 'Try F5.',
+                emptyState: 'No orders found.',
+                axisQtdPedidos: 'Number of orders',
+                axisQtdVendida: 'Quantity sold',
+                axisPctExpedidos: '% of shipped products',
+                weekDays: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+                langLabel: 'English'
+            }
+        };
+
+        let currentLang = localStorage.getItem('livoltek_lang') || 'pt';
+
+        function t(key){
+            return (I18N[currentLang] && I18N[currentLang][key]) ?? (I18N.pt[key] ?? key);
+        }
+
+        function applyTranslations(){
+            document.documentElement.lang = currentLang === 'pt' ? 'pt-BR' : 'en';
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                el.textContent = t(el.getAttribute('data-i18n'));
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
+            });
+            const labelEl = document.getElementById('langCurrentLabel');
+            if (labelEl) labelEl.textContent = t('langLabel');
+        }
+
+        function toggleLangMenu(){
+            const menu = document.getElementById('langMenu');
+            if (menu) menu.classList.toggle('open');
+        }
+
+        function setLang(lang){
+            currentLang = lang;
+            localStorage.setItem('livoltek_lang', lang);
+            applyTranslations();
+            document.getElementById('langMenu')?.classList.remove('open');
+            // Re-renderiza tabela e gráficos para que textos dinâmicos (cabeçalho da tabela,
+            // mensagens vazias, eixos de gráfico) também troquem de idioma — sem alterar os dados.
+            if (typeof renderTable === 'function' && csvData.length) renderTable();
+            if (typeof updateUI === 'function' && csvData.length) updateUI();
+            const analiseTab = document.getElementById('tabAnalise');
+            if (analiseTab && analiseTab.classList.contains('active') && csvData.length) {
+                drawChart();
+                drawChartPendencias();
+                drawChartTopProdutos();
+                drawChartUnidade();
+                drawChartPedidosUnidade();
+            }
+        }
+
+        document.addEventListener('click', (e) => {
+            const sel = document.querySelector('.lang-selector');
+            if (sel && !sel.contains(e.target)) {
+                document.getElementById('langMenu')?.classList.remove('open');
+            }
+        });
+
+        let csvData = [];
+
+        // ══ MAPA KAM → DIRETORIA
+        function getDiretoria(kamNome){
+            if(!kamNome) return 'Não mapeado';
+            // Match exato primeiro
+            if(KAM_TO_DIRETORIA[kamNome]) return KAM_TO_DIRETORIA[kamNome];
+            // Match parcial: nome do CSV pode ter sobrenome extra (ex: "Anna Julia Junkes" vs "Anna Julia")
+            const kamLower = kamNome.toLowerCase();
+            for(const [nome, dir] of Object.entries(KAM_TO_DIRETORIA)){
+                if(kamLower.includes(nome.toLowerCase()) || nome.toLowerCase().includes(kamLower)){
+                    return dir;
+                }
+            }
+            return 'Não mapeado';
+        }
+
+        const KAM_TO_DIRETORIA = {
+            'Leonardo Dib': 'Distribution',
+            'Marcelo Leite': 'Distribution',
+            'Tainara': 'Distribution',
+            'Kelly Li': 'Distribution',
+            'Mateus Armando': 'Distribution',
+
+            'Anna Julia': 'E-Mobility',
+            'Beatriz Sales': 'E-Mobility',
+            'Kariny Maciel': 'E-Mobility',
+            'Vinicio Carrara': 'E-Mobility',
+
+            'Flavio Pimenta': 'Projects E-mobility',
+            'Bruno Reis': 'Projects E-mobility',
+            'Felipe Hanke': 'Projects E-mobility',
+
+            'Wilton Moura': 'Projects & Bids',
+            'Mateus Gomes': 'Projects & Bids',
+            'Thiago Gomes': 'Projects & Bids',
+            'Marcos Petroline': 'Projects & Bids',
+            'Ana Netildes': 'Projects & Bids',
+
+            'Fabiam Lourenco': 'Eletra',
+            'Samir Sarquis': 'Eletra',
+            'Vinicius Valadão': 'Eletra',
+            'Vinicius Ferreira': 'Eletra',
+
+            'Camila Mendoza': 'Hexing',
+            'Flora': 'Hexing',
+        };
+
+        // ===============================================
+        // FUNÇÕES DE PARSING CSV
+        // ===============================================
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            if (lines.length === 0) return [];
+
+            // Detecta o separador (tenta ; primeiro, depois ,)
+            const header = lines[0];
+            const separator = header.includes(';') ? ';' : ',';
+            
+            // Parse header
+            const headers = lines[0].split(separator).map(h => h.trim().toLowerCase());
+            
+            // Encontra índices das colunas necessárias
+            const colMap = {
+                po: headers.findIndex(h => h.includes('po') && h.includes('relacionado')),
+                customer: headers.findIndex(h => h.includes('customer') || h.includes('cliente')),
+                kam: headers.findIndex(h => h === 'kam'),
+                dataReceb: headers.findIndex(h => h.includes('data pedido recebido')),
+                dataCompl: headers.findIndex(h => h.includes('data pedido completo')),
+                dataEnvio: headers.findIndex(h => h.includes('data envio faturamento')),
+                pendencias: headers.findIndex(h => h.includes('quais') && (h.includes('pend') || h.includes('end'))),
+                warehouse: headers.findIndex(h => h.includes('warehouse')),
+                codProduto: headers.findIndex(h => h.includes('digo') && h.includes('produto')),
+                descProduto: headers.findIndex(h => h.includes('descri')),
+                qtd: headers.findIndex(h => h.includes('qtdade') || h === 'qtd')
+            };
+
+            console.log('🔍 Colunas encontradas:', colMap);
+
+            const rows = [];
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                const cols = line.split(separator);
+                rows.push({
+                    po: cols[colMap.po]?.trim() || '',
+                    customer: cols[colMap.customer]?.trim() || '',
+                    kam: cols[colMap.kam]?.trim() || '',
+                    dataReceb: cols[colMap.dataReceb]?.trim() || '',
+                    dataCompl: cols[colMap.dataCompl]?.trim() || '',
+                    dataEnvio: cols[colMap.dataEnvio]?.trim() || '',
+                    pendencias: cols[colMap.pendencias]?.trim() || '',
+                    warehouse: cols[colMap.warehouse]?.trim() || '',
+                    codProduto: cols[colMap.codProduto]?.trim() || '',
+                    descProduto: cols[colMap.descProduto]?.trim() || '',
+                    qtd: parseFloat((cols[colMap.qtd]||'0').replace(',','.')) || 0
+                });
+            }
+
+            return rows;
+        }
+
+        // ══ CADASTRO MESTRE DE PRODUTOS (compartilhado com o dashboard de Estoque)
+        // Resolve códigos "opacos" (ex: 104937) para a nomenclatura real do produto.
+        // Se essa fonte falhar, o dashboard continua funcionando normalmente —
+        // só não terá a nomenclatura enriquecida (cai no fallback da Descrição do próprio pedido).
+        let CADASTRO_PRODUTOS = {}; // { codigo: {nomenclatura, familia, categoria} }
+
+        function parseCadastroProdutos(csvText){
+            const linhas = csvText.trim().split('\n');
+            if (linhas.length < 2) return {};
+            const sep = linhas[0].includes(';') ? ';' : ',';
+            const map = {};
+            for (let i = 1; i < linhas.length; i++) {
+                const cols = linhas[i].split(sep);
+                const codigo = (cols[0] || '').trim().toUpperCase();
+                if (!codigo) continue;
+                map[codigo] = {
+                    nomenclatura: (cols[5] || '').trim() || (cols[1] || '').trim(), // NOMENCLATURA, fallback DESCRICAO
+                    familia: (cols[4] || '').trim(),
+                    categoria: (cols[3] || '').trim()
+                };
+            }
+            return map;
+        }
+
+        // ══ DECODIFICAÇÃO DE ENCODING ══
+        // O pedidos.csv é salvo pelo Airtable/Excel em Windows-1252 (Latin-1), não UTF-8.
+        // resp.text() força decodificação UTF-8 e corrompe acentos irreversivelmente
+        // (ex: "válido" virava "v�lido"). Buscamos os bytes brutos e decodificamos
+        // explicitamente como windows-1252 para preservar os acentos corretamente.
+        function fetchTextoLatin1(url){
+            return fetch(url).then(resp => {
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                return resp.arrayBuffer();
+            }).then(buffer => new TextDecoder('windows-1252').decode(buffer));
+        }
+
+        function fetchAndProcessCSV() {
+            const csvUrl = 'https://raw.githubusercontent.com/smlivoltek/Pedidos-Livoltek/main/pedidos.csv';
+            const cadastroUrl = 'https://raw.githubusercontent.com/smlivoltek/livoltek/main/data/cadastro_produtos.csv';
+
+            const pPedidos = fetchTextoLatin1(csvUrl);
+
+            // Cadastro é opcional — se falhar, segue sem nomenclatura enriquecida
+            const pCadastro = fetchTextoLatin1(cadastroUrl).catch(() => '');
+
+            Promise.all([pPedidos, pCadastro])
+                .then(([csvText, cadastroText]) => {
+                    console.log('✅ CSV de pedidos carregado');
+                    if (cadastroText) {
+                        CADASTRO_PRODUTOS = parseCadastroProdutos(cadastroText);
+                        console.log(`📘 Cadastro de produtos: ${Object.keys(CADASTRO_PRODUTOS).length} SKUs`);
+                    } else {
+                        console.warn('⚠️ Cadastro de produtos não disponível — usando descrição do pedido como fallback');
+                    }
+                    const rows = parseCSV(csvText);
+                    console.log(`📦 Linhas brutas: ${rows.length}`);
+                    processData(rows);
+                })
+                .catch(err => {
+                    console.error('❌ Erro ao carregar CSV:', err);
+                    document.getElementById('loadingMsg').innerHTML = 
+                        `${t('errorLoad')}: ${err.message}. ${t('tryF5')}`;
+                });
+        }
+
+        let produtosVendidos = []; // {codigo, descricao, qtdTotal} — Top 10 mais vendidos
+        let rowsGlobal = []; // linhas brutas (1 por item) — necessário para somar qtd por armazém
+
+        function processData(rows) {
+            rowsGlobal = rows;
+            csvData = [];
+            const seen = new Set();
+
+            // Agregação de produtos: soma qtd por código, considerando TODAS as linhas
+            // (um PO pode ter vários itens em linhas separadas, então não dedupar aqui)
+            const prodMap = {};
+            rows.forEach(row => {
+                const po = row.po;
+                if (!po || !po.startsWith('LIV')) return;
+                const cod = row.codProduto;
+                if (!cod) return;
+                if (!prodMap[cod]) {
+                    // Cadastro mestre tem prioridade sobre a descrição solta do pedido
+                    const cad = CADASTRO_PRODUTOS[cod.toUpperCase()];
+                    const descricao = (cad && cad.nomenclatura) || row.descProduto || cod;
+                    prodMap[cod] = { codigo: cod, descricao, qtdTotal: 0 };
+                }
+                prodMap[cod].qtdTotal += row.qtd;
+            });
+            produtosVendidos = Object.values(prodMap).sort((a,b) => b.qtdTotal - a.qtdTotal);
+
+            for (let row of rows) {
+                const po = row.po;
+                if (!po || !po.startsWith('LIV')) continue; // Valida PO
+                if (seen.has(po)) continue; // Pula duplicatas (já processou)
+
+                seen.add(po);
+
+                const receb = row.dataReceb;
+                const compl = row.dataCompl;
+                const envio = row.dataEnvio;
+
+                // Calcula SLAs
+                const slaRecebCompl = calcDaysBetween(receb, compl);
+                const slaComplEnvio = calcDaysBetween(compl, envio);
+
+                // Extrai observações
+                const obsPendencias = extractObservations(row.pendencias);
+
+                // Determina status
+                let status = '';
+                if (receb && !compl) {
+                    status = 'PENDÊNCIA DO VENDEDOR';
+                } else if (receb && compl && !envio) {
+                    status = 'EM ANÁLISE (SM)';
+                } else if (receb && compl && envio) {
+                    status = 'ENVIADO PARA FATURAMENTO (PD)';
+                }
+
+                csvData.push({
+                    KAM: row.kam,
+                    'Nº DO PEDIDO': po,
+                    CLIENTE: row.customer,
+                    'Data Pedido Recebido': receb,
+                    'Data Pedido Completo': compl,
+                    'Data Envio Faturamento': envio,
+                    'SLA Receb→Compl': slaRecebCompl,
+                    'Obs Pendências': obsPendencias,
+                    'SLA Compl→Envio': slaComplEnvio,
+                    Status: status,
+                    Warehouse: row.warehouse,
+                    Diretoria: getDiretoria(row.kam)
+                });
+            }
+
+            console.log(`✅ Pedidos únicos processados: ${csvData.length}`);
+            document.getElementById('loadingMsg').style.display = 'none';
+            document.getElementById('cardsMain').style.display = 'grid';
+            updateUI();
+        }
+
+        function calcDaysBetween(data1Str, data2Str) {
+            if (!data1Str || !data2Str) return '';
+            try {
+                const [d1, m1, y1] = data1Str.split('/');
+                const [d2, m2, y2] = data2Str.split('/');
+                const date1 = new Date(y1, m1 - 1, d1);
+                const date2 = new Date(y2, m2 - 1, d2);
+                const diffTime = Math.abs(date2 - date1);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return diffDays;
+            } catch (e) {
+                return '';
+            }
+        }
+
+        // Pendências: texto cru do campo, sem separação por KAM/SM
+        function extractObservations(texto) {
+            if (!texto) return '';
+            return texto.trim();
+        }
+
+        function updateUI() {
+            if (csvData.length === 0) {
+                document.getElementById('tableContainer').innerHTML = 
+                    `<div class="empty-state">${t('emptyState')}</div>`;
+                return;
+            }
+
+            const total = csvData.length;
+            const aguardando = csvData.filter(p => p.Status === 'PENDÊNCIA DO VENDEDOR').length;
+            const analise = csvData.filter(p => p.Status === 'EM ANÁLISE (SM)').length;
+            const faturamento = csvData.filter(p => p.Status === 'ENVIADO PARA FATURAMENTO (PD)').length;
+
+            // Novas métricas para aba Análise
+            // Soma dos dois indicadores: pedidos com SLA>0 dias + pedidos ainda sem Envio Final à SM
+            const comSLA = csvData.filter(p => p['SLA Receb→Compl'] > 0).length;
+            const semEnvioFinal = csvData.filter(p => p['Data Pedido Recebido'] && !p['Data Pedido Completo']).length;
+            const slaVendedor = comSLA + semEnvioFinal;
+
+            // Tela principal
+            document.getElementById('cardTotal').textContent = total;
+            document.getElementById('cardAguardando').textContent = aguardando;
+            document.getElementById('cardAnalise').textContent = analise;
+            document.getElementById('cardFaturamento').textContent = faturamento;
+
+            // Aba Análise
+            document.getElementById('cardTotalAnalise').textContent = total;
+            document.getElementById('cardSLAVendedor').textContent = slaVendedor;
+
+            const kams = [...new Set(csvData.map(p => p.KAM).filter(Boolean))].sort();
+            const kamSelect = document.getElementById('filterKAM');
+            kamSelect.innerHTML = '<option value="">Todos</option>';
+            kams.forEach(k => {
+                kamSelect.innerHTML += `<option value="${k}">${k}</option>`;
+            });
+
+            renderTable();
+        }
+
+        function renderTable() {
+            const kamFilter = document.getElementById('filterKAM').value;
+            const statusFilter = document.getElementById('filterStatus').value;
+            const pedidoFilter = (document.getElementById('filterPedido')?.value || '').trim().toLowerCase();
+
+            let filtered = csvData.filter(p => {
+                const kamOk = !kamFilter || p.KAM === kamFilter;
+                const statusOk = !statusFilter || p.Status === statusFilter;
+                const pedidoOk = !pedidoFilter || (p['Nº DO PEDIDO'] || '').toLowerCase().includes(pedidoFilter);
+                return kamOk && statusOk && pedidoOk;
+            });
+
+            // Ordenação padrão: data mais recente primeiro (Primeiro Envio à SM)
+            filtered.sort((a, b) => {
+                const parseData = (s) => {
+                    if (!s) return 0;
+                    const partes = s.split('/');
+                    if (partes.length !== 3) return 0;
+                    return new Date(partes[2], partes[1]-1, partes[0]).getTime();
+                };
+                return parseData(b['Data Pedido Recebido']) - parseData(a['Data Pedido Recebido']);
+            });
+
+            if (filtered.length === 0) {
+                document.getElementById('tableContainer').innerHTML = 
+                    `<div class="empty-state">${t('emptyState')}</div>`;
+                return;
+            }
+
+            let html = '<table><tr>';
+            html += `<th>${t('colKAM')}</th><th>${t('colNumPedido')}</th><th>${t('colPrimeiroEnvio')}</th><th>${t('colEnvioFinal')}</th>`;
+            html += `<th>${t('colTempoRegularizacao')}</th><th>${t('colPendencias')}</th>`;
+            html += `<th>${t('colEnviadoPD')}</th><th>${t('colStatus')}</th></tr>`;
+
+            filtered.forEach(p => {
+                const statusClass = p.Status === 'PENDÊNCIA DO VENDEDOR' ? 'status-vendedor' :
+                                   p.Status === 'EM ANÁLISE (SM)' ? 'status-analise' : 'status-faturamento';
+                // Texto do badge traduzido (visual apenas) — o valor interno p.Status
+                // permanece em português para não quebrar a lógica de filtros/contagens.
+                const statusLabel = p.Status === 'PENDÊNCIA DO VENDEDOR' ? t('cardAguardando') :
+                                   p.Status === 'EM ANÁLISE (SM)' ? t('cardAnalise') :
+                                   p.Status === 'ENVIADO PARA FATURAMENTO (PD)' ? t('statusEnviadoPD') : (p.Status || '-');
+                html += '<tr>';
+                html += `<td>${p.KAM || '-'}</td>`;
+                html += `<td><strong>${p['Nº DO PEDIDO'] || '-'}</strong></td>`;
+                html += `<td>${p['Data Pedido Recebido'] || '-'}</td>`;
+                html += `<td>${p['Data Pedido Completo'] || '-'}</td>`;
+                html += `<td class="sla">${p['SLA Receb→Compl'] !== '' ? p['SLA Receb→Compl'] + 'd' : '-'}</td>`;
+                html += `<td class="obs-small">${p['Obs Pendências'] || '-'}</td>`;
+                html += `<td>${p['Data Envio Faturamento'] || '-'}</td>`;
+                html += `<td><span class="status ${statusClass}">${statusLabel}</span></td>`;
+                html += '</tr>';
+            });
+            html += '</table>';
+
+            document.getElementById('tableContainer').innerHTML = html;
+        }
+
+        function switchTab(tab, event) {
+            event.preventDefault();
+            
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+            event.target.classList.add('active');
+            
+            if (tab === 'analise') {
+                setTimeout(() => {
+                    drawChart();
+                    drawChartPendencias();
+                    drawChartTopProdutos();
+                    drawChartUnidade();
+                    drawChartPedidosUnidade();
+                }, 100);
+            }
+        }
+
+        // ══ OPÇÕES PADRÃO — mesmo estilo em todos os gráficos do dashboard
+        // Barra horizontal, mesma fonte/tamanho de eixo, mesma ausência de legenda,
+        // mesmo grid leve. Usar sempre que possível para manter consistência visual.
+        function PADRAO_CHART_OPTIONS(tituloEixoX){
+            return {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#1f2937',
+                        titleFont: { size: 12, weight: '600' },
+                        bodyFont: { size: 12 },
+                        padding: 10
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: tituloEixoX ? { display: true, text: tituloEixoX, font: { size: 11 } } : undefined,
+                        grid: { color: '#f1f3f5' },
+                        ticks: { font: { size: 11 } }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: { font: { size: 11 } }
+                    }
+                }
+            };
+        }
+
+        // ══ GRÁFICO: Top 10 Pendências dos Pedidos
+        // Decompõe pendências combinadas (separadas por vírgula, ex: "Falta comprovante, Cliente sem cadastro")
+        // e conta quantos pedidos cada causa apareceu em. Cor vermelha (padrão para pendências/alertas).
+        function drawChartPendencias(){
+            const ctx = document.getElementById('chartPendencias');
+            if (!ctx) return;
+
+            const causasCount = {};
+            csvData.forEach(p => {
+                const pend = p['Obs Pendências'];
+                if (!pend) return;
+                const causas = pend.split(',').map(c => c.trim()).filter(Boolean);
+                causas.forEach(causa => {
+                    causasCount[causa] = (causasCount[causa] || 0) + 1;
+                });
+            });
+
+            const top10 = Object.entries(causasCount).sort((a,b) => b[1]-a[1]).slice(0, 10);
+            const ordenado = [...top10].reverse(); // maior no topo da barra horizontal
+            const labels = ordenado.map(o => o[0]);
+            const data = ordenado.map(o => o[1]);
+
+            if (window.chartPendenciasInstance) window.chartPendenciasInstance.destroy();
+            window.chartPendenciasInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{ data: data, backgroundColor: '#dc2626', borderRadius: 4 }]
+                },
+                options: PADRAO_CHART_OPTIONS(t('axisQtdPedidos'))
+            });
+        }
+
+        // ══ GRÁFICO: Top 10 Produtos Mais Vendidos (horizontal, por quantidade)
+        // Monta o label da barra: sempre tenta mostrar o SKU (código),
+        // e quando o código é "opaco" (só números, sem nome legível — comum em itens da fábrica
+        // de Manaus), complementa com um trecho da descrição para o vendedor saber o que é.
+        function montaLabelProduto(p){
+            const codigoOpaco = /^\d+$/.test(p.codigo); // só números → não diz nada por si só
+            if (!codigoOpaco) return p.codigo;
+            const descCurta = p.descricao.length > 32 ? p.descricao.slice(0,32)+'…' : p.descricao;
+            return `${p.codigo} — ${descCurta}`;
+        }
+
+        function drawChartTopProdutos(){
+            const ctx = document.getElementById('chartTopProdutos');
+            if (!ctx) return;
+            const top10 = produtosVendidos.slice(0, 10);
+            const ordenado = [...top10].reverse();
+            const labels = ordenado.map(montaLabelProduto);
+            const data = ordenado.map(p => p.qtdTotal);
+
+            if (window.chartTopProdutosInstance) window.chartTopProdutosInstance.destroy();
+            const opts = PADRAO_CHART_OPTIONS(t('axisQtdVendida'));
+            opts.plugins.tooltip.callbacks = {
+                title: (items) => ordenado[items[0].dataIndex].codigo,
+                afterTitle: (items) => ordenado[items[0].dataIndex].descricao
+            };
+            window.chartTopProdutosInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{ data: data, backgroundColor: '#2563eb', borderRadius: 4 }]
+                },
+                options: opts
+            });
+        }
+
+        // ══ GRÁFICO: Origem dos Produtos
+        // Mede APENAS percentual (%) de produtos expedidos por armazém — não quantidade.
+        // Reflete de onde o estoque realmente saiu; métrica mais útil pro comercial
+        // do que contar pedidos, já que um único pedido grande pode concentrar volume.
+        // ══ GRÁFICO: Pedidos Processados por Unidade
+        // Conta PEDIDOS ÚNICOS (não soma de itens) por armazém — métrica diferente
+        // da "Origem dos Produtos": aqui Curitiba pode liderar mesmo com menor volume de produtos,
+        // pois processa mais pedidos. As duas métricas contam histórias diferentes e complementares.
+        function drawChartPedidosUnidade(){
+            const ctx = document.getElementById('chartPedidosUnidade');
+            if (!ctx) return;
+
+            const countPorWh = {};
+            csvData.forEach(p => {
+                const w = p.Warehouse || 'Não informado';
+                countPorWh[w] = (countPorWh[w] || 0) + 1;
+            });
+
+            const sorted = Object.entries(countPorWh).sort((a,b) => b[1]-a[1]);
+            const labels = sorted.map(s => s[0]).reverse();
+            const data = sorted.map(s => s[1]).reverse();
+
+            if (window.chartPedidosUnidadeInstance) window.chartPedidosUnidadeInstance.destroy();
+            window.chartPedidosUnidadeInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{ data: data, backgroundColor: '#2563eb', borderRadius: 4 }]
+                },
+                options: PADRAO_CHART_OPTIONS(t('axisQtdPedidos'))
+            });
+        }
+
+        function drawChartUnidade(){
+            const ctx = document.getElementById('chartUnidade');
+            if (!ctx) return;
+            const qtdPorWh = {};
+            let totalGeral = 0;
+
+            rowsGlobal.forEach(row => {
+                if (!row.po || !row.po.startsWith('LIV')) return;
+                if (!row.codProduto) return; // ignora linhas de continuação sem produto
+                const w = row.warehouse || 'Não informado';
+                qtdPorWh[w] = (qtdPorWh[w] || 0) + row.qtd;
+                totalGeral += row.qtd;
+            });
+
+            const sorted = Object.entries(qtdPorWh).sort((a,b) => b[1]-a[1]);
+            const labels = sorted.map(s => s[0]).reverse();
+            const percentuais = sorted.map(s => totalGeral > 0 ? Math.round((s[1]/totalGeral)*100) : 0).reverse();
+
+            if (window.chartUnidadeInstance) window.chartUnidadeInstance.destroy();
+            const opts = PADRAO_CHART_OPTIONS(t('axisPctExpedidos'));
+            opts.scales.x.max = 100;
+            opts.scales.x.ticks.callback = (v) => v + '%';
+            opts.plugins.tooltip.callbacks = { label: (item) => `${item.parsed.x}%` };
+
+            window.chartUnidadeInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{ data: percentuais, backgroundColor: '#2563eb', borderRadius: 4 }]
+                },
+                options: opts,
+                plugins: [{
+                    id: 'pctLabels',
+                    afterDatasetsDraw(chart) {
+                        const ctx = chart.ctx;
+                        const meta = chart.getDatasetMeta(0);
+                        meta.data.forEach((bar, i) => {
+                            ctx.save();
+                            ctx.font = '600 12px -apple-system, Arial';
+                            ctx.fillStyle = '#1e3a8a';
+                            ctx.textAlign = 'left';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(`${percentuais[i]}%`, bar.x + 8, bar.y);
+                            ctx.restore();
+                        });
+                    }
+                }]
+            });
+        }
+
+        function drawChart() {
+            const ctx = document.getElementById('chartDias');
+            if (!ctx) return;
+            
+            const dias = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+            
+            csvData.forEach(p => {
+                if (p['Data Pedido Recebido']) {
+                    try {
+                        const parts = p['Data Pedido Recebido'].split('/');
+                        const date = new Date(parts[2], parts[1] - 1, parts[0]);
+                        if (!isNaN(date)) {
+                            dias[date.getDay()]++;
+                        }
+                    } catch (e) {}
+                }
+            });
+
+            const totalPedidos = Object.values(dias).reduce((a, b) => a + b, 0);
+            const percentuais = Object.values(dias).map(v => totalPedidos > 0 ? Math.round((v / totalPedidos) * 100) : 0);
+            
+            // Cor única (azul) para os dias úteis — consistente com a paleta padrão.
+            // Fins de semana em tom mais claro só para indicar menor relevância operacional.
+            const colors = ['#93c5fd', '#2563eb', '#2563eb', '#2563eb', '#2563eb', '#2563eb', '#93c5fd'];
+            const labels = t('weekDays');
+
+            if (window.chartInstance) {
+                window.chartInstance.destroy();
+            }
+
+            window.chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Pedidos',
+                        data: Object.values(dias),
+                        backgroundColor: colors,
+                        borderRadius: 4,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    indexAxis: 'x',
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const index = context.dataIndex;
+                                    const value = context.parsed.y;
+                                    const pct = percentuais[index];
+                                    return `${value} pedidos (${pct}%)`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: Math.max(...Object.values(dias)) + 2
+                        }
+                    }
+                },
+                plugins: [{
+                    id: 'percentageLabels',
+                    afterDatasetsDraw(chart) {
+                        const ctx = chart.ctx;
+                        chart.data.datasets.forEach((dataset, datasetIndex) => {
+                            const meta = chart.getDatasetMeta(datasetIndex);
+                            meta.data.forEach((element, index) => {
+                                const value = dataset.data[index];
+                                const pct = percentuais[index];
+                                
+                                const x = element.x;
+                                const y = element.y - 10;
+                                
+                                ctx.fillStyle = '#1f2937';
+                                ctx.font = "600 12px 'Inter', Arial";
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'bottom';
+                                ctx.fillText(`${pct}%`, x, y);
+                            });
+                        });
+                    }
+                }]
+            });
+        }
+
+        // Carrega dados ao inicializar
+        document.addEventListener('DOMContentLoaded', () => {
+            applyTranslations();
+            fetchAndProcessCSV();
+        });
+    </script>
+</body>
+</html>
