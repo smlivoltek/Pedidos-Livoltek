@@ -172,10 +172,12 @@
             border-bottom: 2px solid #eee;
             font-size: 12px;
             color: #555;
-            white-space: nowrap;
+            white-space: normal;
+            word-break: break-word;
             position: sticky;
             top: 0;
             z-index: 10;
+            max-width: 90px;
         }
         td { 
             padding: 10px 8px; 
@@ -478,6 +480,7 @@
                 colPendencias: 'Pendências do Pedido',
                 colEnviadoPD: 'Enviado para PD',
                 colStatus: 'Status',
+                colArmazem: 'Armazem',
                 // Mensagens
                 loading: '⏳ Carregando dados do CSV...',
                 errorLoad: '⚠️ Erro ao carregar dados',
@@ -522,6 +525,7 @@
                 colPendencias: 'Order Pending Issues',
                 colEnviadoPD: 'Sent for Billing',
                 colStatus: 'Status',
+                colArmazem: 'Warehouse',
                 loading: '⏳ Loading CSV data...',
                 errorLoad: '⚠️ Error loading data',
                 tryF5: 'Try F5.',
@@ -918,7 +922,7 @@
             let html = '<table><tr>';
             html += `<th>${t('colKAM')}</th><th>${t('colNumPedido')}</th><th>${t('colPrimeiroEnvio')}</th><th>${t('colEnvioFinal')}</th>`;
             html += `<th>${t('colTempoRegularizacao')}</th><th>${t('colPendencias')}</th>`;
-            html += `<th>${t('colEnviadoPD')}</th><th>${t('colStatus')}</th></tr>`;
+            html += `<th>${t('colEnviadoPD')}</th><th>${t('colStatus')}</th><th>${t('colArmazem')}</th></tr>`;
 
             filtered.forEach(p => {
                 const statusClass = p.Status === 'PENDÊNCIA DO VENDEDOR' ? 'status-vendedor' :
@@ -937,6 +941,7 @@
                 html += `<td class="obs-small">${p['Obs Pendências'] || '-'}</td>`;
                 html += `<td>${p['Data Envio Faturamento'] || '-'}</td>`;
                 html += `<td><span class="status ${statusClass}">${statusLabel}</span></td>`;
+                html += `<td>${p.Warehouse || '-'}</td>`;
                 html += '</tr>';
             });
             html += '</table>';
