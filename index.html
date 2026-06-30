@@ -190,6 +190,7 @@
         th:nth-child(6), td:nth-child(6) { min-width: 180px; } /* Pendências do Pedido */
         th:nth-child(7), td:nth-child(7) { min-width: 80px; max-width: 90px; } /* Enviado para PD */
         th:nth-child(8), td:nth-child(8) { min-width: 90px; max-width: 100px; } /* Status */
+        th:nth-child(9), td:nth-child(9) { min-width: 100px; max-width: 120px; } /* Armazém */
         td { 
             padding: 10px 8px; 
             border-bottom: 1px solid #f0f0f0;
@@ -491,6 +492,7 @@
                 colPendencias: 'Pendências<br>do Pedido',
                 colEnviadoPD: 'Enviado<br>para PD',
                 colStatus: 'Status',
+                colArmazem: 'Armazém',
                 // Mensagens
                 loading: '⏳ Carregando dados do CSV...',
                 errorLoad: '⚠️ Erro ao carregar dados',
@@ -535,6 +537,7 @@
                 colPendencias: 'Order<br>Pending Issues',
                 colEnviadoPD: 'Sent for<br>Billing',
                 colStatus: 'Status',
+                colArmazem: 'Warehouse',
                 loading: '⏳ Loading CSV data...',
                 errorLoad: '⚠️ Error loading data',
                 tryF5: 'Try F5.',
@@ -943,7 +946,7 @@
             let html = '<table><tr>';
             html += `<th>${t('colKAM')}</th><th>${t('colNumPedido')}</th><th>${t('colPrimeiroEnvio')}</th><th>${t('colEnvioFinal')}</th>`;
             html += `<th>${t('colTempoRegularizacao')}</th><th>${t('colPendencias')}</th>`;
-            html += `<th>${t('colEnviadoPD')}</th><th>${t('colStatus')}</th></tr>`;
+            html += `<th>${t('colEnviadoPD')}</th><th>${t('colStatus')}</th><th>${t('colArmazem')}</th></tr>`;
 
             filtered.forEach(p => {
                 const statusClass = p.Status === 'PENDÊNCIA DO VENDEDOR' ? 'status-vendedor' :
@@ -962,6 +965,7 @@
                 html += `<td class="obs-small">${p['Obs Pendências'] || '-'}</td>`;
                 html += `<td>${p['Data Envio Faturamento'] || '-'}</td>`;
                 html += `<td><span class="status ${statusClass}">${statusLabel}</span></td>`;
+                html += `<td>${p.Warehouse || '-'}</td>`;
                 html += '</tr>';
             });
             html += '</table>';
