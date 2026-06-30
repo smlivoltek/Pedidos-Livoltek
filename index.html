@@ -598,6 +598,18 @@
 
         let csvData = [];
 
+        // ══ PADRONIZAÇÃO DE NOMES DE ARMAZÉM ══
+        const ARMAZEM_RENAME = {
+            'Curitiba (Eletra)': 'Eletra (Curitiba)',
+            'Fortaleza (Eletra)': 'Eletra (Fortaleza)',
+            'Manaus (Eletra)': 'Eletra (Manaus)',
+            'Fábrica Livoltek': 'Livoltek (Manaus)'
+        };
+        function normalizaArmazem(nome){
+            if (!nome) return nome;
+            return ARMAZEM_RENAME[nome.trim()] || nome;
+        }
+
         // ══ MAPA KAM → DIRETORIA
         function getDiretoria(kamNome){
             if(!kamNome) return 'Não mapeado';
@@ -829,7 +841,7 @@
                     'Obs Pendências': obsPendencias,
                     'SLA Compl→Envio': slaComplEnvio,
                     Status: status,
-                    Warehouse: row.warehouse,
+                    Warehouse: normalizaArmazem(row.warehouse),
                     Diretoria: getDiretoria(row.kam)
                 });
             }
@@ -1119,7 +1131,7 @@
             rowsGlobal.forEach(row => {
                 if (!row.po || !row.po.startsWith('LIV')) return;
                 if (!row.codProduto) return; // ignora linhas de continuação sem produto
-                const w = row.warehouse || 'Não informado';
+                const w = normalizaArmazem(row.warehouse) || 'Não informado';
                 qtdPorWh[w] = (qtdPorWh[w] || 0) + row.qtd;
                 totalGeral += row.qtd;
             });
