@@ -173,12 +173,23 @@
             font-size: 12px;
             color: #555;
             white-space: normal;
-            word-break: break-word;
+            word-wrap: break-word;
+            line-height: 1.3;
+            vertical-align: bottom;
             position: sticky;
             top: 0;
             z-index: 10;
-            max-width: 90px;
         }
+        /* Larguras-alvo por coluna: força a quebra consistente em ~2 linhas
+           (mesmo padrão que "Tempo de Regularização do Vendedor" já tinha) */
+        th:nth-child(1), td:nth-child(1) { min-width: 110px; max-width: 130px; } /* KAM */
+        th:nth-child(2), td:nth-child(2) { min-width: 110px; max-width: 130px; } /* Nº Pedido */
+        th:nth-child(3), td:nth-child(3) { min-width: 100px; max-width: 120px; } /* Primeiro Envio à SM */
+        th:nth-child(4), td:nth-child(4) { min-width: 100px; max-width: 120px; } /* Envio Final à SM */
+        th:nth-child(5), td:nth-child(5) { min-width: 110px; max-width: 130px; } /* Tempo de Regularização */
+        th:nth-child(6), td:nth-child(6) { min-width: 200px; } /* Pendências do Pedido */
+        th:nth-child(7), td:nth-child(7) { min-width: 100px; max-width: 120px; } /* Enviado para PD */
+        th:nth-child(8), td:nth-child(8) { min-width: 110px; max-width: 130px; } /* Status */
         td { 
             padding: 10px 8px; 
             border-bottom: 1px solid #f0f0f0;
@@ -480,7 +491,6 @@
                 colPendencias: 'Pendências do Pedido',
                 colEnviadoPD: 'Enviado para PD',
                 colStatus: 'Status',
-                colArmazem: 'Armazem',
                 // Mensagens
                 loading: '⏳ Carregando dados do CSV...',
                 errorLoad: '⚠️ Erro ao carregar dados',
@@ -525,7 +535,6 @@
                 colPendencias: 'Order Pending Issues',
                 colEnviadoPD: 'Sent for Billing',
                 colStatus: 'Status',
-                colArmazem: 'Warehouse',
                 loading: '⏳ Loading CSV data...',
                 errorLoad: '⚠️ Error loading data',
                 tryF5: 'Try F5.',
@@ -922,7 +931,7 @@
             let html = '<table><tr>';
             html += `<th>${t('colKAM')}</th><th>${t('colNumPedido')}</th><th>${t('colPrimeiroEnvio')}</th><th>${t('colEnvioFinal')}</th>`;
             html += `<th>${t('colTempoRegularizacao')}</th><th>${t('colPendencias')}</th>`;
-            html += `<th>${t('colEnviadoPD')}</th><th>${t('colStatus')}</th><th>${t('colArmazem')}</th></tr>`;
+            html += `<th>${t('colEnviadoPD')}</th><th>${t('colStatus')}</th></tr>`;
 
             filtered.forEach(p => {
                 const statusClass = p.Status === 'PENDÊNCIA DO VENDEDOR' ? 'status-vendedor' :
@@ -941,7 +950,6 @@
                 html += `<td class="obs-small">${p['Obs Pendências'] || '-'}</td>`;
                 html += `<td>${p['Data Envio Faturamento'] || '-'}</td>`;
                 html += `<td><span class="status ${statusClass}">${statusLabel}</span></td>`;
-                html += `<td>${p.Warehouse || '-'}</td>`;
                 html += '</tr>';
             });
             html += '</table>';
