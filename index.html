@@ -190,7 +190,7 @@
         th:nth-child(6), td:nth-child(6) { min-width: 180px; } /* Pendências do Pedido */
         th:nth-child(7), td:nth-child(7) { min-width: 80px; max-width: 90px; } /* Enviado para PD */
         th:nth-child(8), td:nth-child(8) { min-width: 90px; max-width: 100px; } /* Status */
-        th:nth-child(9), td:nth-child(9) { min-width: 100px; max-width: 120px; } /* Armazém */
+        th:nth-child(9), td:nth-child(9) { min-width: 150px; padding-left: 14px; } /* Armazém */
         td { 
             padding: 10px 8px; 
             border-bottom: 1px solid #f0f0f0;
@@ -602,15 +602,18 @@
         let csvData = [];
 
         // ══ PADRONIZAÇÃO DE NOMES DE ARMAZÉM ══
-        const ARMAZEM_RENAME = {
-            'Curitiba (Eletra)': 'Eletra (Curitiba)',
-            'Fortaleza (Eletra)': 'Eletra (Fortaleza)',
-            'Manaus (Eletra)': 'Eletra (Manaus)',
-            'Fábrica Livoltek': 'Livoltek (Manaus)'
-        };
+        // Os valores brutos no CSV variam em caixa e formato (ex: "FORTALEZA", "Curitiba (Eletra)"),
+        // então comparamos por palavra-chave (case-insensitive) em vez de string exata.
+        // Regra confirmada: LIVOLTEK MANAUS é checado primeiro (mais específico),
+        // senão MANAUS sozinho vira "Manaus (Curitiba)".
         function normalizaArmazem(nome){
             if (!nome) return nome;
-            return ARMAZEM_RENAME[nome.trim()] || nome;
+            const n = nome.trim().toUpperCase();
+            if (n.includes('LIVOLTEK')) return 'Livoltek (Manaus)';
+            if (n.includes('FORTALEZA')) return 'Eletra (Fortaleza)';
+            if (n.includes('CURITIBA')) return 'Eletra (Curitiba)';
+            if (n.includes('MANAUS')) return 'Manaus (Curitiba)';
+            return nome.trim();
         }
 
         // ══ MAPA KAM → DIRETORIA
