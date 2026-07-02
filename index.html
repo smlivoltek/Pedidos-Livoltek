@@ -612,15 +612,15 @@
         // ══ PADRONIZAÇÃO DE NOMES DE ARMAZÉM ══
         // Os valores brutos no CSV variam em caixa e formato (ex: "FORTALEZA", "Curitiba (Eletra)"),
         // então comparamos por palavra-chave (case-insensitive) em vez de string exata.
-        // Regra confirmada: LIVOLTEK MANAUS é checado primeiro (mais específico),
-        // senão MANAUS sozinho vira "Manaus (Curitiba)".
+        // Nome canônico sempre "Cidade (Entidade)": Curitiba (Eletra), Fortaleza (Eletra),
+        // Manaus (Eletra), Fábrica Livoltek — mesmo padrão do Dashboard de Estoque.
         function normalizaArmazem(nome){
             if (!nome) return nome;
             const n = nome.trim().toUpperCase();
-            if (n.includes('LIVOLTEK')) return 'Livoltek (Manaus)';
-            if (n.includes('FORTALEZA')) return 'Eletra (Fortaleza)';
-            if (n.includes('CURITIBA')) return 'Eletra (Curitiba)';
-            if (n.includes('MANAUS')) return 'Manaus (Curitiba)';
+            if (n.includes('LIVOLTEK') || n.includes('FABRICA') || n.includes('FÁBRICA')) return 'Fábrica Livoltek';
+            if (n.includes('CURITIBA')) return 'Curitiba (Eletra)';
+            if (n.includes('FORTALEZA')) return 'Fortaleza (Eletra)';
+            if (n.includes('MANAUS')) return 'Manaus (Eletra)';
             return nome.trim();
         }
 
