@@ -398,6 +398,12 @@
                         <option value="ENVIADO PARA FATURAMENTO (PD)" data-i18n="statusEnviadoPD">Enviado para Faturamento</option>
                     </select>
                 </div>
+                <div class="filter-group">
+                    <label data-i18n="filterArmazemLabel">Armazém:</label>
+                    <select id="filterArmazem" onchange="renderTable()">
+                        <option value="" data-i18n="optionTodos">Todos</option>
+                    </select>
+                </div>
             </div>
             <div class="table-wrapper">
                 <div id="tableContainer"></div>
@@ -472,6 +478,7 @@
                 filterPedidoPlaceholder: 'Buscar nº do pedido...',
                 filterKAMLabel: 'KAM:',
                 filterStatusLabel: 'Status:',
+                filterArmazemLabel: 'Armazém:',
                 optionTodos: 'Todos',
                 statusEnviadoPD: 'Enviado para Faturamento',
                 cardTotalUnicos: 'Total de Pedidos Únicos',
@@ -518,6 +525,7 @@
                 filterPedidoPlaceholder: 'Search order number...',
                 filterKAMLabel: 'KAM:',
                 filterStatusLabel: 'Status:',
+                filterArmazemLabel: 'Warehouse:',
                 optionTodos: 'All',
                 statusEnviadoPD: 'Sent for Billing',
                 cardTotalUnicos: 'Total Unique Orders',
@@ -909,10 +917,21 @@
 
             const kams = [...new Set(csvData.map(p => p.KAM).filter(Boolean))].sort();
             const kamSelect = document.getElementById('filterKAM');
+            const kamSelecionado = kamSelect.value;
             kamSelect.innerHTML = '<option value="">Todos</option>';
             kams.forEach(k => {
                 kamSelect.innerHTML += `<option value="${k}">${k}</option>`;
             });
+            kamSelect.value = kamSelecionado;
+
+            const armazens = [...new Set(csvData.map(p => p.Warehouse).filter(Boolean))].sort();
+            const armazemSelect = document.getElementById('filterArmazem');
+            const armazemSelecionado = armazemSelect.value;
+            armazemSelect.innerHTML = `<option value="">${t('optionTodos')}</option>`;
+            armazens.forEach(w => {
+                armazemSelect.innerHTML += `<option value="${w}">${w}</option>`;
+            });
+            armazemSelect.value = armazemSelecionado;
 
             renderTable();
         }
@@ -920,13 +939,15 @@
         function renderTable() {
             const kamFilter = document.getElementById('filterKAM').value;
             const statusFilter = document.getElementById('filterStatus').value;
+            const armazemFilter = document.getElementById('filterArmazem')?.value || '';
             const pedidoFilter = (document.getElementById('filterPedido')?.value || '').trim().toLowerCase();
 
             let filtered = csvData.filter(p => {
                 const kamOk = !kamFilter || p.KAM === kamFilter;
                 const statusOk = !statusFilter || p.Status === statusFilter;
+                const armazemOk = !armazemFilter || p.Warehouse === armazemFilter;
                 const pedidoOk = !pedidoFilter || (p['Nº DO PEDIDO'] || '').toLowerCase().includes(pedidoFilter);
-                return kamOk && statusOk && pedidoOk;
+                return kamOk && statusOk && armazemOk && pedidoOk;
             });
 
             // Ordenação padrão: data mais recente primeiro (Primeiro Envio à SM)
