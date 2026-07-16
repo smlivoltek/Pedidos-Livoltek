@@ -813,6 +813,13 @@
             const headers = lines[0].split(separator).map(h => h.trim());
             
             console.log('📋 Headers encontrados:', headers);
+            console.log('📊 TOTAL DE COLUNAS:', headers.length);
+            
+            // Mostra TODAS as colunas com índices para análise
+            console.log('🔍 LISTAGEM COMPLETA DE COLUNAS:');
+            headers.forEach((h, idx) => {
+                console.log(`   [${idx}] = "${h}"`);
+            });
 
             // Mapeamento EXATO com os nomes do Google Sheet
             const colMap = {
@@ -826,15 +833,12 @@
                 customer: headers.findIndex(h => h === 'Cliente' || h === 'Customer' || h === 'Cliente (Relacionado)')
             };
 
-            console.log('🔍 Mapeamento de colunas:', colMap);
+            console.log('🎯 MAPEAMENTO ENCONTRADO:', colMap);
             
-            // Debug: mostra nomes com índices para encontrar exatos
-            console.log('📌 Procurando "Data Pedido Recebido"...');
-            const dataRecebIdx = headers.findIndex(h => h === 'Data Pedido Recebido');
-            console.log(`   → Encontrado no índice: ${dataRecebIdx}`);
-            if (dataRecebIdx === -1) {
-                console.warn('⚠️ Coluna "Data Pedido Recebido" NÃO ENCONTRADA!');
-                console.log('📋 Colunas que contêm "Data":', headers.filter((h, i) => h.includes('Data')).map((h, i) => `"${h}"`));
+            // Se não achou KAM, procura variações
+            if (colMap.kam === -1) {
+                console.warn('❌ KAM não encontrado! Procurando variações...');
+                console.log('   Colunas que contêm "KAM":', headers.filter(h => h.includes('KAM')).map((h, idx) => `"${h}" [${headers.indexOf(h)}]`));
             }
             
             // Alerta se não encontrou coluna importante
