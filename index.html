@@ -805,68 +805,46 @@
             const lines = csvText.trim().split('\n');
             if (lines.length === 0) return [];
 
-            // Detecta o separador (tenta , primeiro, depois ;)
-            const header = lines[0];
-            const separator = header.includes(',') ? ',' : ';';
+            // Google Sheet usa separador vírgula
+            const separator = ',';
             
             // Parse header
             const headers = lines[0].split(separator).map(h => h.trim());
             
             console.log('📋 Headers encontrados:', headers);
             console.log('📊 TOTAL DE COLUNAS:', headers.length);
-            
-            // Mostra TODAS as colunas com índices para análise
-            console.log('🔍 LISTAGEM COMPLETA DE COLUNAS:');
-            headers.forEach((h, idx) => {
-                console.log(`   [${idx}] = "${h}"`);
-            });
 
-            // Mapeamento EXATO com os nomes do Google Sheet
+            // MAPEAMENTO CORRETO com índices das colunas do Google Sheet
+            // Confirmado manualmente:
+            // 0=ID, 1=PO, 2=Customer, 3=Contratos, 4=Tipo Contrato, 5=ID Client, 6=Operation, 7=KAM,
+            // 8=Data Receb, 9=Data Compl, 10=Data Envio, 11=Tem Pend?, 12=Quais Pend?, 34=Warehouse
             const colMap = {
-                po: headers.findIndex(h => h === 'PO (Relacionado)'),
-                kam: headers.findIndex(h => h === 'KAM'),
-                dataReceb: headers.findIndex(h => h === 'Data Pedido Recebido'),
-                dataCompl: headers.findIndex(h => h === 'Data Pedido Completo'),
-                dataEnvio: headers.findIndex(h => h === 'Data Envio Faturamento'),
-                pendencias: headers.findIndex(h => h === 'Quais Pendências?'),
-                warehouse: headers.findIndex(h => h === 'Warehouse' || h === 'Amazem' || h === 'Armazém'),
-                customer: headers.findIndex(h => h === 'Cliente' || h === 'Customer' || h === 'Cliente (Relacionado)')
+                po: 1,  // PO (Relacionado)
+                kam: 7,  // KAM
+                dataReceb: 8,  // Data Pedido Recebido
+                dataCompl: 9,  // Data Pedido Completo
+                dataEnvio: 10,  // Data Envio Faturamento
+                pendencias: 12,  // Quais Pendências?
+                warehouse: 34,  // Warehouse
+                customer: 2  // Customer (Relacionado)
             };
 
-            console.log('🎯 MAPEAMENTO ENCONTRADO:', colMap);
-            
-            // Se não achou KAM, procura variações
-            if (colMap.kam === -1) {
-                console.warn('❌ KAM não encontrado! Procurando variações...');
-                console.log('   Colunas que contêm "KAM":', headers.filter(h => h.includes('KAM')).map((h, idx) => `"${h}" [${headers.indexOf(h)}]`));
-            }
-            
-            // Alerta se não encontrou coluna importante
-            if (colMap.po === -1) console.warn('⚠️ Coluna "PO (Relacionado)" não encontrada!');
-            if (colMap.dataReceb === -1) console.warn('⚠️ Coluna "Data Pedido Recebido" não encontrada!');
-            if (colMap.dataCompl === -1) console.warn('⚠️ Coluna "Data Pedido Completo" não encontrada!');
-            if (colMap.dataEnvio === -1) console.warn('⚠️ Coluna "Data Envio Faturamento" não encontrada!');
-            if (colMap.warehouse === -1) console.warn('⚠️ Coluna Warehouse/Amazem não encontrada!');
-            
-            // Debug: mostra primeira linha para inspeção
-            if (lines.length > 1) {
-                const firstRowCols = lines[1].split(separator);
-                console.log('📝 Primeira linha de dados:', {
-                    po: firstRowCols[colMap.po],
-                    kam: firstRowCols[colMap.kam],
-                    dataReceb: firstRowCols[colMap.dataReceb],
-                    dataCompl: firstRowCols[colMap.dataCompl],
-                    dataEnvio: firstRowCols[colMap.dataEnvio],
-                    warehouse: firstRowCols[colMap.warehouse]
-                });
-            }
+            console.log('🎯 MAPEAMENTO FIXO:', {
+                po: `[${colMap.po}] ${headers[colMap.po]}`,
+                kam: `[${colMap.kam}] ${headers[colMap.kam]}`,
+                dataReceb: `[${colMap.dataReceb}] ${headers[colMap.dataReceb]}`,
+                dataCompl: `[${colMap.dataCompl}] ${headers[colMap.dataCompl]}`,
+                dataEnvio: `[${colMap.dataEnvio}] ${headers[colMap.dataEnvio]}`,
+                pendencias: `[${colMap.pendencias}] ${headers[colMap.pendencias]}`,
+                warehouse: `[${colMap.warehouse}] ${headers[colMap.warehouse]}`
+            });
 
             const rows = [];
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (!line) continue;
 
-                const cols = line.split(separator);
+                const cols = line.split(separator).map(c => c.trim());
                 
                 rows.push({
                     po: cols[colMap.po]?.trim() || '',
