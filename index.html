@@ -1007,6 +1007,9 @@
                     status = 'EM ANÁLISE (SM)';
                 } else if (receb && compl && envio) {
                     status = 'ENVIADO PARA FATURAMENTO (PD)';
+                } else {
+                    // Pedido sem data de primeiro envio — não aparece nos totais
+                    status = '';
                 }
 
                 csvData.push({
@@ -1095,7 +1098,11 @@
                 return;
             }
 
-            const total = csvData.length;
+            // Conta apenas pedidos com status definido (que têm "Primeiro Envio à SM")
+            const pedidosComStatus = csvData.filter(p => p.Status !== '');
+            const total = pedidosComStatus.length;
+            const incompletos = csvData.filter(p => p.Status === '').length;
+            
             const aguardando = csvData.filter(p => p.Status === 'PENDÊNCIA DO VENDEDOR').length;
             const analise = csvData.filter(p => p.Status === 'EM ANÁLISE (SM)').length;
             const faturamento = csvData.filter(p => p.Status === 'ENVIADO PARA FATURAMENTO (PD)').length;
@@ -1108,6 +1115,9 @@
 
             // Tela principal
             document.getElementById('cardTotal').textContent = total;
+            if (incompletos > 0) {
+                console.warn(`⚠️ ${incompletos} pedido(s) sem "Primeiro Envio à SM" não são exibidos nos totais`);
+            }
             document.getElementById('cardAguardando').textContent = aguardando;
             document.getElementById('cardAnalise').textContent = analise;
             document.getElementById('cardFaturamento').textContent = faturamento;
