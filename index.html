@@ -21,13 +21,144 @@
             --cor-laranja: #f59e0b;
             --cor-vermelho: #dc2626;
         }
+        /* ══ TOPBAR AZUL ══ */
+        .topbar {
+            height: 60px;
+            background: #0f172a;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .brand-mark {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #fff;
+            background: rgba(37, 99, 235, 0.25);
+            border: 1px solid rgba(96, 165, 250, 0.4);
+            border-radius: 5px;
+            padding: 4px 10px;
+        }
+        .topbar-title {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            color: #fff;
+        }
+        .topbar-sub {
+            font-size: 11px;
+            color: #94a3b8;
+        }
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            position: relative;
+        }
+        .lang-selector {
+            position: relative;
+        }
+        .lang-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .lang-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        .lang-menu {
+            display: none;
+            position: absolute;
+            top: 110%;
+            right: 0;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            min-width: 150px;
+            z-index: 100;
+            overflow: hidden;
+        }
+        .lang-menu.open {
+            display: block;
+        }
+        .lang-menu button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 9px 14px;
+            font-size: 13px;
+            border: none;
+            background: #fff;
+            color: #111;
+            cursor: pointer;
+        }
+        .lang-menu button:hover {
+            background: #f3f4f6;
+        }
+        /* ══ RODAPÉ AZUL ══ */
+        .footer {
+            height: 50px;
+            background: #0f172a;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            margin-top: 30px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
+        }
+        .footer-left {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+        .footer-right {
+            font-size: 12px;
+            color: #94a3b8;
+        }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: #f5f5f5;
-            padding: 20px;
             color: #333;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
-        .container { max-width: 1600px; margin: 0 auto; }
+        .page-wrapper {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+        .container { 
+            max-width: 1600px; 
+            margin: 0 auto; 
+            width: 100%;
+            padding: 20px;
+            flex: 1;
+        }
         .header { margin-bottom: 30px; }
         /* ══ IDENTIDADE VISUAL — SM Livoltek ══
            Marca fixa em todos os dashboards da área; abaixo dela, o nome do relatório
@@ -170,37 +301,25 @@
             text-align: left; 
             font-weight: 600;
             border-bottom: 2px solid #eee;
-            font-size: 10px;
+            font-size: 12px;
             color: #555;
             white-space: normal;
-            word-wrap: break-word;
-            line-height: 1.3;
-            vertical-align: bottom;
+            word-break: break-word;
             position: sticky;
             top: 0;
             z-index: 10;
+            max-width: 90px;
         }
-        /* Larguras-alvo por coluna: força a quebra consistente em ~2 linhas
-           (mesmo padrão que "Tempo de Regularização do Vendedor" já tinha) */
-        th:nth-child(1), td:nth-child(1) { min-width: 90px; max-width: 100px; } /* KAM */
-        th:nth-child(2), td:nth-child(2) { min-width: 70px; max-width: 80px; } /* Nº Pedido */
-        th:nth-child(3), td:nth-child(3) { min-width: 85px; max-width: 95px; } /* Primeiro Envio à SM */
-        th:nth-child(4), td:nth-child(4) { min-width: 85px; max-width: 95px; } /* Envio Final à SM */
-        th:nth-child(5), td:nth-child(5) { min-width: 100px; max-width: 110px; } /* Tempo de Regularização */
-        th:nth-child(6), td:nth-child(6) { min-width: 180px; } /* Pendências do Pedido */
-        th:nth-child(7), td:nth-child(7) { min-width: 80px; max-width: 90px; } /* Enviado para PD */
-        th:nth-child(8), td:nth-child(8) { min-width: 90px; max-width: 100px; } /* Status */
-        th:nth-child(9), td:nth-child(9) { min-width: 150px; padding-left: 14px; } /* Armazém */
         td { 
             padding: 10px 8px; 
             border-bottom: 1px solid #f0f0f0;
-            font-size: 10px;
+            font-size: 13px;
         }
         tr:hover { background: #fafafa; }
         .status { 
-            padding: 5px 9px; 
+            padding: 6px 10px; 
             border-radius: 4px; 
-            font-size: 10px; 
+            font-size: 11px; 
             font-weight: 600;
             display: inline-block;
             white-space: nowrap;
@@ -321,7 +440,7 @@
             color: #333;
         }
         .obs-small {
-            font-size: 10px;
+            font-size: 12px;
             color: #666;
             max-width: 180px;
             word-wrap: break-word;
@@ -330,25 +449,32 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
-                <div>
-                    <div class="brand-mark">SM Livoltek</div>
-                    <h1 data-i18n="title">📊 Painel de Status de Pedidos</h1>
-                    <p class="subtitle" data-i18n="subtitle">Livoltek - Sales Management | Atualização diária</p>
-                </div>
-                <div class="lang-selector">
-                    <button class="lang-btn" onclick="toggleLangMenu()">
-                        🌐 <span id="langCurrentLabel">Português</span> <span style="font-size:10px">▾</span>
-                    </button>
-                    <div id="langMenu" class="lang-menu">
-                        <button onclick="setLang('pt')">🇧🇷 Português</button>
-                        <button onclick="setLang('en')">🇺🇸 English</button>
-                    </div>
+    <!-- TOPBAR AZUL -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <div class="brand-mark">SM Livoltek</div>
+            <div>
+                <div class="topbar-title" data-i18n="title">📊 Painel de Status de Pedidos</div>
+                <div class="topbar-sub" data-i18n="subtitle">Atualização diária</div>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <div class="lang-selector">
+                <button class="lang-btn" onclick="toggleLangMenu()">
+                    🌐 <span id="langCurrentLabel">Português</span> <span style="font-size:10px">▾</span>
+                </button>
+                <div id="langMenu" class="lang-menu">
+                    <button onclick="setLang('pt')">🇧🇷 Português</button>
+                    <button onclick="setLang('en')">🇺🇸 English</button>
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- WRAPPER PARA LAYOUT FLEXBOX -->
+    <div class="page-wrapper">
+        <div class="container">
+            <div class="header"></div>
 
         <div id="loadingMsg" class="loading" data-i18n="loading">⏳ Carregando dados do CSV...</div>
 
@@ -396,12 +522,6 @@
                         <option value="PENDÊNCIA DO VENDEDOR" data-i18n="cardAguardando">Aguardando Vendedor</option>
                         <option value="EM ANÁLISE (SM)" data-i18n="cardAnalise">Em Análise (SM)</option>
                         <option value="ENVIADO PARA FATURAMENTO (PD)" data-i18n="statusEnviadoPD">Enviado para Faturamento</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label data-i18n="filterArmazemLabel">Armazém:</label>
-                    <select id="filterArmazem" onchange="renderTable()">
-                        <option value="" data-i18n="optionTodos">Todos</option>
                     </select>
                 </div>
             </div>
@@ -478,7 +598,6 @@
                 filterPedidoPlaceholder: 'Buscar nº do pedido...',
                 filterKAMLabel: 'KAM:',
                 filterStatusLabel: 'Status:',
-                filterArmazemLabel: 'Armazém:',
                 optionTodos: 'Todos',
                 statusEnviadoPD: 'Enviado para Faturamento',
                 cardTotalUnicos: 'Total de Pedidos Únicos',
@@ -492,14 +611,15 @@
                 chartDiasTitle: 'Pedidos por Dia da Semana',
                 // Colunas da tabela
                 colKAM: 'KAM',
-                colNumPedido: 'Nº<br>Pedido',
-                colPrimeiroEnvio: 'Primeiro Envio<br>à SM',
-                colEnvioFinal: 'Envio Final<br>à SM',
-                colTempoRegularizacao: 'Tempo de Regularização<br>do Vendedor',
-                colPendencias: 'Pendências<br>do Pedido',
-                colEnviadoPD: 'Enviado<br>para PD',
+                colNumPedido: 'Nº Pedido',
+                colPrimeiroEnvio: 'Primeiro Envio à SM',
+                colEnvioFinal: 'Envio Final à SM',
+                colTempoRegularizacao: 'Tempo de Regularização do Vendedor',
+                colSLAEnvio: 'SLA SM (dias)',
+                colPendencias: 'Pendências do Pedido',
+                colEnviadoPD: 'Enviado para PD',
                 colStatus: 'Status',
-                colArmazem: 'Armazém',
+                colArmazem: 'Armazem',
                 // Mensagens
                 loading: '⏳ Carregando dados do CSV...',
                 errorLoad: '⚠️ Erro ao carregar dados',
@@ -525,7 +645,6 @@
                 filterPedidoPlaceholder: 'Search order number...',
                 filterKAMLabel: 'KAM:',
                 filterStatusLabel: 'Status:',
-                filterArmazemLabel: 'Warehouse:',
                 optionTodos: 'All',
                 statusEnviadoPD: 'Sent for Billing',
                 cardTotalUnicos: 'Total Unique Orders',
@@ -538,12 +657,13 @@
                 chartPedidosUnidadeSubtitle: 'Based on the number of orders.',
                 chartDiasTitle: 'Orders by Day of the Week',
                 colKAM: 'KAM',
-                colNumPedido: 'Order<br>#',
-                colPrimeiroEnvio: 'First Sent<br>to SM',
-                colEnvioFinal: 'Final Sent<br>to SM',
-                colTempoRegularizacao: 'Sales Rep<br>Resolution Time',
-                colPendencias: 'Order<br>Pending Issues',
-                colEnviadoPD: 'Sent for<br>Billing',
+                colNumPedido: 'Order #',
+                colPrimeiroEnvio: 'First Sent to SM',
+                colEnvioFinal: 'Final Sent to SM',
+                colTempoRegularizacao: 'Sales Rep Resolution Time',
+                colSLAEnvio: 'SM SLA (days)',
+                colPendencias: 'Order Pending Issues',
+                colEnviadoPD: 'Sent for Billing',
                 colStatus: 'Status',
                 colArmazem: 'Warehouse',
                 loading: '⏳ Loading CSV data...',
@@ -608,21 +728,6 @@
         });
 
         let csvData = [];
-
-        // ══ PADRONIZAÇÃO DE NOMES DE ARMAZÉM ══
-        // Os valores brutos no CSV variam em caixa e formato (ex: "FORTALEZA", "Curitiba (Eletra)"),
-        // então comparamos por palavra-chave (case-insensitive) em vez de string exata.
-        // Nome canônico sempre "Cidade (Entidade)": Curitiba (Eletra), Fortaleza (Eletra),
-        // Manaus (Eletra), Fábrica Livoltek — mesmo padrão do Dashboard de Estoque.
-        function normalizaArmazem(nome){
-            if (!nome) return nome;
-            const n = nome.trim().toUpperCase();
-            if (n.includes('LIVOLTEK') || n.includes('FABRICA') || n.includes('FÁBRICA')) return 'Fábrica Livoltek';
-            if (n.includes('CURITIBA')) return 'Curitiba (Eletra)';
-            if (n.includes('FORTALEZA')) return 'Fortaleza (Eletra)';
-            if (n.includes('MANAUS')) return 'Manaus (Eletra)';
-            return nome.trim();
-        }
 
         // ══ MAPA KAM → DIRETORIA
         function getDiretoria(kamNome){
@@ -855,7 +960,7 @@
                     'Obs Pendências': obsPendencias,
                     'SLA Compl→Envio': slaComplEnvio,
                     Status: status,
-                    Warehouse: normalizaArmazem(row.warehouse),
+                    Warehouse: row.warehouse,
                     Diretoria: getDiretoria(row.kam)
                 });
             }
@@ -917,21 +1022,10 @@
 
             const kams = [...new Set(csvData.map(p => p.KAM).filter(Boolean))].sort();
             const kamSelect = document.getElementById('filterKAM');
-            const kamSelecionado = kamSelect.value;
             kamSelect.innerHTML = '<option value="">Todos</option>';
             kams.forEach(k => {
                 kamSelect.innerHTML += `<option value="${k}">${k}</option>`;
             });
-            kamSelect.value = kamSelecionado;
-
-            const armazens = [...new Set(csvData.map(p => p.Warehouse).filter(Boolean))].sort();
-            const armazemSelect = document.getElementById('filterArmazem');
-            const armazemSelecionado = armazemSelect.value;
-            armazemSelect.innerHTML = `<option value="">${t('optionTodos')}</option>`;
-            armazens.forEach(w => {
-                armazemSelect.innerHTML += `<option value="${w}">${w}</option>`;
-            });
-            armazemSelect.value = armazemSelecionado;
 
             renderTable();
         }
@@ -939,15 +1033,13 @@
         function renderTable() {
             const kamFilter = document.getElementById('filterKAM').value;
             const statusFilter = document.getElementById('filterStatus').value;
-            const armazemFilter = document.getElementById('filterArmazem')?.value || '';
             const pedidoFilter = (document.getElementById('filterPedido')?.value || '').trim().toLowerCase();
 
             let filtered = csvData.filter(p => {
                 const kamOk = !kamFilter || p.KAM === kamFilter;
                 const statusOk = !statusFilter || p.Status === statusFilter;
-                const armazemOk = !armazemFilter || p.Warehouse === armazemFilter;
                 const pedidoOk = !pedidoFilter || (p['Nº DO PEDIDO'] || '').toLowerCase().includes(pedidoFilter);
-                return kamOk && statusOk && armazemOk && pedidoOk;
+                return kamOk && statusOk && pedidoOk;
             });
 
             // Ordenação padrão: data mais recente primeiro (Primeiro Envio à SM)
@@ -970,7 +1062,7 @@
             let html = '<table><tr>';
             html += `<th>${t('colKAM')}</th><th>${t('colNumPedido')}</th><th>${t('colPrimeiroEnvio')}</th><th>${t('colEnvioFinal')}</th>`;
             html += `<th>${t('colTempoRegularizacao')}</th><th>${t('colPendencias')}</th>`;
-            html += `<th>${t('colEnviadoPD')}</th><th>${t('colStatus')}</th><th>${t('colArmazem')}</th></tr>`;
+            html += `<th>${t('colEnviadoPD')}</th><th>${t('colSLAEnvio')}</th><th>${t('colStatus')}</th><th>${t('colArmazem')}</th></tr>`;
 
             filtered.forEach(p => {
                 const statusClass = p.Status === 'PENDÊNCIA DO VENDEDOR' ? 'status-vendedor' :
@@ -988,6 +1080,7 @@
                 html += `<td class="sla">${p['SLA Receb→Compl'] !== '' ? p['SLA Receb→Compl'] + 'd' : '-'}</td>`;
                 html += `<td class="obs-small">${p['Obs Pendências'] || '-'}</td>`;
                 html += `<td>${p['Data Envio Faturamento'] || '-'}</td>`;
+                html += `<td class="sla">${p['SLA Compl→Envio'] !== '' ? p['SLA Compl→Envio'] + 'd' : '-'}</td>`;
                 html += `<td><span class="status ${statusClass}">${statusLabel}</span></td>`;
                 html += `<td>${p.Warehouse || '-'}</td>`;
                 html += '</tr>';
@@ -1159,7 +1252,7 @@
             rowsGlobal.forEach(row => {
                 if (!row.po || !row.po.startsWith('LIV')) return;
                 if (!row.codProduto) return; // ignora linhas de continuação sem produto
-                const w = normalizaArmazem(row.warehouse) || 'Não informado';
+                const w = row.warehouse || 'Não informado';
                 qtdPorWh[w] = (qtdPorWh[w] || 0) + row.qtd;
                 totalGeral += row.qtd;
             });
@@ -1298,5 +1391,14 @@
             fetchAndProcessCSV();
         });
     </script>
+
+        </div>
+    </div>
+
+    <!-- FOOTER AZUL -->
+    <div class="footer">
+        <div class="footer-left">SM Livoltek | Painel de Status de Pedidos</div>
+        <div class="footer-right">© 2026 Livoltek. Todos os direitos reservados.</div>
+    </div>
 </body>
 </html>
