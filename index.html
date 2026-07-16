@@ -64,6 +64,11 @@
             font-size: 11px;
             color: #94a3b8;
         }
+        .last-update {
+            font-size: 10px;
+            color: #64748b;
+            margin-top: 2px;
+        }
         .topbar-right {
             display: flex;
             align-items: center;
@@ -455,7 +460,8 @@
             <div class="brand-mark">SM Livoltek</div>
             <div>
                 <div class="topbar-title" data-i18n="title">📊 Painel de Status de Pedidos</div>
-                <div class="topbar-sub" data-i18n="subtitle">Atualização diária</div>
+                <div class="topbar-sub" data-i18n="subtitle">Google Sheets | Atualização automática a cada 3h</div>
+                <div class="last-update" id="lastUpdate">Carregando...</div>
             </div>
         </div>
         <div class="topbar-right">
@@ -787,24 +793,23 @@
             const separator = header.includes(';') ? ';' : ',';
             
             // Parse header
-            const headers = lines[0].split(separator).map(h => h.trim().toLowerCase());
+            const headers = lines[0].split(separator).map(h => h.trim());
             
             // Encontra índices das colunas necessárias
+            // Google Sheets: "PO (Relacionado)", "KAM", "Data Pedido Recebido", etc.
             const colMap = {
-                po: headers.findIndex(h => h.includes('po') && h.includes('relacionado')),
-                customer: headers.findIndex(h => h.includes('customer') || h.includes('cliente')),
-                kam: headers.findIndex(h => h === 'kam'),
-                dataReceb: headers.findIndex(h => h.includes('data pedido recebido')),
-                dataCompl: headers.findIndex(h => h.includes('data pedido completo')),
-                dataEnvio: headers.findIndex(h => h.includes('data envio faturamento')),
-                pendencias: headers.findIndex(h => h.includes('quais') && (h.includes('pend') || h.includes('end'))),
-                warehouse: headers.findIndex(h => h.includes('warehouse')),
-                codProduto: headers.findIndex(h => h.includes('digo') && h.includes('produto')),
-                descProduto: headers.findIndex(h => h.includes('descri')),
-                qtd: headers.findIndex(h => h.includes('qtdade') || h === 'qtd')
+                po: headers.findIndex(h => h.includes('PO') && h.includes('Relacionado')),
+                kam: headers.findIndex(h => h === 'KAM'),
+                dataReceb: headers.findIndex(h => h.includes('Data Pedido Recebido')),
+                dataCompl: headers.findIndex(h => h.includes('Data Pedido Completo')),
+                dataEnvio: headers.findIndex(h => h.includes('Data Envio Faturamento')),
+                pendencias: headers.findIndex(h => h.includes('Quais Pendências')),
+                warehouse: headers.findIndex(h => h === 'Warehouse'),
+                customer: headers.findIndex(h => h.includes('customer') || h.includes('cliente') || h === 'Cliente')
             };
 
-            console.log('🔍 Colunas encontradas:', colMap);
+            console.log('🔍 Colunas encontradas no Google Sheet:', colMap);
+            console.log('📋 Headers:', headers);
 
             const rows = [];
             for (let i = 1; i < lines.length; i++) {
@@ -821,9 +826,9 @@
                     dataEnvio: cols[colMap.dataEnvio]?.trim() || '',
                     pendencias: cols[colMap.pendencias]?.trim() || '',
                     warehouse: cols[colMap.warehouse]?.trim() || '',
-                    codProduto: cols[colMap.codProduto]?.trim() || '',
-                    descProduto: cols[colMap.descProduto]?.trim() || '',
-                    qtd: parseFloat((cols[colMap.qtd]||'0').replace(',','.')) || 0
+                    codProduto: '',
+                    descProduto: '',
+                    qtd: 0
                 });
             }
 
@@ -867,32 +872,54 @@
         }
 
         function fetchAndProcessCSV() {
-            const csvUrl = 'https://raw.githubusercontent.com/smlivoltek/Pedidos-Livoltek/main/pedidos.csv';
-            const cadastroUrl = 'https://raw.githubusercontent.com/smlivoltek/livoltek/main/data/cadastro_produtos.csv';
+            // URL do Google Sheet publicado como CSV (atualiza em tempo real)
+            const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRZXJB7RTC1UVoj7r7bmyqa-YHryeGtc3hmE1DIS_WD_qDLauiBp-Ob9LVf_tNBxLvP0NzFW_F00Dns/pub?gid=0&single=true&output=csv';
 
             const pPedidos = fetchTextoLatin1(csvUrl);
 
             // Cadastro é opcional — se falhar, segue sem nomenclatura enriquecida
-            const pCadastro = fetchTextoLatin1(cadastroUrl).catch(() => '');
+            const pCadastro = Promise.resolve('');
 
             Promise.all([pPedidos, pCadastro])
                 .then(([csvText, cadastroText]) => {
-                    console.log('✅ CSV de pedidos carregado');
-                    if (cadastroText) {
-                        CADASTRO_PRODUTOS = parseCadastroProdutos(cadastroText);
-                        console.log(`📘 Cadastro de produtos: ${Object.keys(CADASTRO_PRODUTOS).length} SKUs`);
-                    } else {
-                        console.warn('⚠️ Cadastro de produtos não disponível — usando descrição do pedido como fallback');
-                    }
+                    console.log('✅ Google Sheet carregado');
                     const rows = parseCSV(csvText);
                     console.log(`📦 Linhas brutas: ${rows.length}`);
                     processData(rows);
+                    
+                    // Agenda próxima atualização em 3 horas (10800000 ms)
+                    scheduleNextUpdate();
                 })
                 .catch(err => {
-                    console.error('❌ Erro ao carregar CSV:', err);
+                    console.error('❌ Erro ao carregar Google Sheet:', err);
                     document.getElementById('loadingMsg').innerHTML = 
                         `${t('errorLoad')}: ${err.message}. ${t('tryF5')}`;
+                    // Tenta novamente em 1 hora em caso de erro
+                    setTimeout(fetchAndProcessCSV, 3600000);
                 });
+        }
+
+        function scheduleNextUpdate() {
+            // Próxima atualização em 3 horas (10800000 ms)
+            const nextUpdateMs = 3 * 60 * 60 * 1000;
+            console.log(`⏱️ Próxima atualização agendada em 3 horas`);
+            setTimeout(() => {
+                console.log('🔄 Atualizando dados do Google Sheet...');
+                document.getElementById('loadingMsg').style.display = 'block';
+                document.getElementById('loadingMsg').textContent = '⏳ Atualizando dados...';
+                fetchAndProcessCSV();
+            }, nextUpdateMs);
+        }
+
+        function updateLastUpdateTime() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            
+            const timeStr = `${day}/${month} ${hours}:${minutes}`;
+            document.getElementById('lastUpdate').textContent = `Última atualização: ${timeStr}`;
         }
 
         let produtosVendidos = []; // {codigo, descricao, qtdTotal} — Top 10 mais vendidos
@@ -970,6 +997,7 @@
             console.log(`✅ Pedidos únicos processados: ${csvData.length}`);
             document.getElementById('loadingMsg').style.display = 'none';
             document.getElementById('cardsMain').style.display = 'grid';
+            updateLastUpdateTime();
             updateUI();
         }
 
