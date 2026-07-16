@@ -781,35 +781,65 @@
             'Flora': 'Hexing',
         };
 
-        // ===============================================
-        // FUNÇÕES DE PARSING CSV
-        // ===============================================
+        // Normaliza datas para formato DD/MM/YYYY (ex: 1/7/2026 → 01/07/2026)
+        function normalizaData(dataStr) {
+            if (!dataStr) return '';
+            const partes = dataStr.trim().split('/');
+            if (partes.length !== 3) return dataStr;
+            
+            const dia = String(partes[0]).padStart(2, '0');
+            const mes = String(partes[1]).padStart(2, '0');
+            const ano = partes[2];
+            
+            return `${dia}/${mes}/${ano}`;
+        }
+
         function parseCSV(csvText) {
             const lines = csvText.trim().split('\n');
             if (lines.length === 0) return [];
 
-            // Detecta o separador (tenta ; primeiro, depois ,)
+            // Detecta o separador (tenta , primeiro, depois ;)
             const header = lines[0];
-            const separator = header.includes(';') ? ';' : ',';
+            const separator = header.includes(',') ? ',' : ';';
             
             // Parse header
             const headers = lines[0].split(separator).map(h => h.trim());
             
-            // Encontra índices das colunas necessárias
-            // Google Sheets: "PO (Relacionado)", "KAM", "Data Pedido Recebido", etc.
+            console.log('📋 Headers encontrados:', headers);
+
+            // Mapeamento EXATO com os nomes do Google Sheet
             const colMap = {
-                po: headers.findIndex(h => h.includes('PO') && h.includes('Relacionado')),
+                po: headers.findIndex(h => h === 'PO (Relacionado)'),
                 kam: headers.findIndex(h => h === 'KAM'),
-                dataReceb: headers.findIndex(h => h.includes('Data Pedido Recebido')),
-                dataCompl: headers.findIndex(h => h.includes('Data Pedido Completo')),
-                dataEnvio: headers.findIndex(h => h.includes('Data Envio Faturamento')),
-                pendencias: headers.findIndex(h => h.includes('Quais Pendências')),
-                warehouse: headers.findIndex(h => h === 'Warehouse'),
-                customer: headers.findIndex(h => h.includes('customer') || h.includes('cliente') || h === 'Cliente')
+                dataReceb: headers.findIndex(h => h === 'Data Pedido Recebido'),
+                dataCompl: headers.findIndex(h => h === 'Data Pedido Completo'),
+                dataEnvio: headers.findIndex(h => h === 'Data Envio Faturamento'),
+                pendencias: headers.findIndex(h => h === 'Quais Pendências?'),
+                warehouse: headers.findIndex(h => h === 'Warehouse' || h === 'Amazem' || h === 'Armazém'),
+                customer: headers.findIndex(h => h === 'Cliente' || h === 'Customer' || h === 'Cliente (Relacionado)')
             };
 
-            console.log('🔍 Colunas encontradas no Google Sheet:', colMap);
-            console.log('📋 Headers:', headers);
+            console.log('🔍 Mapeamento de colunas:', colMap);
+            
+            // Alerta se não encontrou coluna importante
+            if (colMap.po === -1) console.warn('⚠️ Coluna "PO (Relacionado)" não encontrada!');
+            if (colMap.dataReceb === -1) console.warn('⚠️ Coluna "Data Pedido Recebido" não encontrada!');
+            if (colMap.dataCompl === -1) console.warn('⚠️ Coluna "Data Pedido Completo" não encontrada!');
+            if (colMap.dataEnvio === -1) console.warn('⚠️ Coluna "Data Envio Faturamento" não encontrada!');
+            if (colMap.warehouse === -1) console.warn('⚠️ Coluna Warehouse/Amazem não encontrada!');
+            
+            // Debug: mostra primeira linha para inspeção
+            if (lines.length > 1) {
+                const firstRowCols = lines[1].split(separator);
+                console.log('📝 Primeira linha de dados:', {
+                    po: firstRowCols[colMap.po],
+                    kam: firstRowCols[colMap.kam],
+                    dataReceb: firstRowCols[colMap.dataReceb],
+                    dataCompl: firstRowCols[colMap.dataCompl],
+                    dataEnvio: firstRowCols[colMap.dataEnvio],
+                    warehouse: firstRowCols[colMap.warehouse]
+                });
+            }
 
             const rows = [];
             for (let i = 1; i < lines.length; i++) {
@@ -817,13 +847,14 @@
                 if (!line) continue;
 
                 const cols = line.split(separator);
+                
                 rows.push({
                     po: cols[colMap.po]?.trim() || '',
                     customer: cols[colMap.customer]?.trim() || '',
                     kam: cols[colMap.kam]?.trim() || '',
-                    dataReceb: cols[colMap.dataReceb]?.trim() || '',
-                    dataCompl: cols[colMap.dataCompl]?.trim() || '',
-                    dataEnvio: cols[colMap.dataEnvio]?.trim() || '',
+                    dataReceb: normalizaData(cols[colMap.dataReceb]?.trim() || ''),
+                    dataCompl: normalizaData(cols[colMap.dataCompl]?.trim() || ''),
+                    dataEnvio: normalizaData(cols[colMap.dataEnvio]?.trim() || ''),
                     pendencias: cols[colMap.pendencias]?.trim() || '',
                     warehouse: cols[colMap.warehouse]?.trim() || '',
                     codProduto: '',
