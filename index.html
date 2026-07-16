@@ -934,7 +934,9 @@
 
                 // Calcula SLAs (apenas dias úteis, desconsiderando fins de semana)
                 const slaRecebCompl = calcBusinessDaysBetween(receb, compl);
-                const slaComplEnvio = calcBusinessDaysBetween(compl, envio);
+                // SLA SM tem 24h de prazo, então subtrai 1 dia do resultado
+                const slaComplEnvioRaw = calcBusinessDaysBetween(compl, envio);
+                const slaComplEnvio = Math.max(0, slaComplEnvioRaw - 1);
 
                 // Extrai observações
                 const obsPendencias = extractObservations(row.pendencias);
