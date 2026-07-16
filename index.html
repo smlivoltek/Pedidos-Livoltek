@@ -451,6 +451,13 @@
             word-wrap: break-word;
             line-height: 1.3;
         }
+        .row-incomplete {
+            background-color: #fef2f2 !important;
+            border-left: 3px solid #dc2626;
+        }
+        .row-incomplete td {
+            opacity: 0.75;
+        }
     </style>
 </head>
 <body>
@@ -821,6 +828,15 @@
 
             console.log('🔍 Mapeamento de colunas:', colMap);
             
+            // Debug: mostra nomes com índices para encontrar exatos
+            console.log('📌 Procurando "Data Pedido Recebido"...');
+            const dataRecebIdx = headers.findIndex(h => h === 'Data Pedido Recebido');
+            console.log(`   → Encontrado no índice: ${dataRecebIdx}`);
+            if (dataRecebIdx === -1) {
+                console.warn('⚠️ Coluna "Data Pedido Recebido" NÃO ENCONTRADA!');
+                console.log('📋 Colunas que contêm "Data":', headers.filter((h, i) => h.includes('Data')).map((h, i) => `"${h}"`));
+            }
+            
             // Alerta se não encontrou coluna importante
             if (colMap.po === -1) console.warn('⚠️ Coluna "PO (Relacionado)" não encontrada!');
             if (colMap.dataReceb === -1) console.warn('⚠️ Coluna "Data Pedido Recebido" não encontrada!');
@@ -1106,18 +1122,24 @@
             const aguardando = csvData.filter(p => p.Status === 'PENDÊNCIA DO VENDEDOR').length;
             const analise = csvData.filter(p => p.Status === 'EM ANÁLISE (SM)').length;
             const faturamento = csvData.filter(p => p.Status === 'ENVIADO PARA FATURAMENTO (PD)').length;
-
-            // Novas métricas para aba Análise
-            // Soma dos dois indicadores: pedidos com SLA>0 dias + pedidos ainda sem Envio Final à SM
-            const comSLA = csvData.filter(p => p['SLA Receb→Compl'] > 0).length;
-            const semEnvioFinal = csvData.filter(p => p['Data Pedido Recebido'] && !p['Data Pedido Completo']).length;
-            const slaVendedor = comSLA + semEnvioFinal;
-
-            // Tela principal
-            document.getElementById('cardTotal').textContent = total;
-            if (incompletos > 0) {
-                console.warn(`⚠️ ${incompletos} pedido(s) sem "Primeiro Envio à SM" não são exibidos nos totais`);
+            
+            // Debug: verifica se a soma bate
+            const somaStatus = aguardando + analise + faturamento;
+            console.log(`📊 TOTAIS: ${csvData.length} processados | ${total} com status | ${incompletos} sem status`);
+            console.log(`📊 BREAKDOWN: ${aguardando} Aguardando + ${analise} Análise + ${faturamento} Faturamento = ${somaStatus}`);
+            
+            if (somaStatus !== csvData.length && incompletos === 0) {
+                console.warn(`⚠️ INCONSISTÊNCIA: ${csvData.length - somaStatus} pedidos sem categoria!`);
+                const orfaos = csvData.filter(p => p.Status === '' || (!['PENDÊNCIA DO VENDEDOR', 'EM ANÁLISE (SM)', 'ENVIADO PARA FATURAMENTO (PD)'].includes(p.Status)));
+                console.warn('Pedidos órfãos:', orfaos.map(p => ({
+                    po: p['Nº DO PEDIDO'],
+                    receb: p['Data Pedido Recebido'],
+                    compl: p['Data Pedido Completo'],
+                    envio: p['Data Envio Faturamento'],
+                    status: p.Status
+                })));
             }
+            document.getElementById('cardTotal').textContent = csvData.length;
             document.getElementById('cardAguardando').textContent = aguardando;
             document.getElementById('cardAnalise').textContent = analise;
             document.getElementById('cardFaturamento').textContent = faturamento;
@@ -1165,7 +1187,16 @@
                 return;
             }
 
-            let html = '<table><tr>';
+            // Conta pedidos incompletos (sem "Primeiro Envio à SM")
+            const incompleteCount = filtered.filter(p => !p['Data Pedido Recebido']).length;
+            let html = '';
+            if (incompleteCount > 0) {
+                html += `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:12px;margin-bottom:15px;color:#991b1b">
+                    <strong>⚠️ ${incompleteCount} pedido(s) sem "Primeiro Envio à SM"</strong> — destacado em rosa na tabela abaixo
+                </div>`;
+            }
+            
+            html += '<table><tr>';
             html += `<th>${t('colKAM')}</th><th>${t('colNumPedido')}</th><th>${t('colPrimeiroEnvio')}</th><th>${t('colEnvioFinal')}</th>`;
             html += `<th>${t('colTempoRegularizacao')}</th><th>${t('colPendencias')}</th>`;
             html += `<th>${t('colEnviadoPD')}</th><th>${t('colSLAEnvio')}</th><th>${t('colStatus')}</th><th>${t('colArmazem')}</th></tr>`;
@@ -1178,7 +1209,12 @@
                 const statusLabel = p.Status === 'PENDÊNCIA DO VENDEDOR' ? t('cardAguardando') :
                                    p.Status === 'EM ANÁLISE (SM)' ? t('cardAnalise') :
                                    p.Status === 'ENVIADO PARA FATURAMENTO (PD)' ? t('statusEnviadoPD') : (p.Status || '-');
-                html += '<tr>';
+                
+                // Destaca pedidos sem "Primeiro Envio à SM"
+                const isIncomplete = !p['Data Pedido Recebido'];
+                const rowClass = isIncomplete ? 'row-incomplete' : '';
+                
+                html += `<tr class="${rowClass}">`;
                 html += `<td>${p.KAM || '-'}</td>`;
                 html += `<td><strong>${p['Nº DO PEDIDO'] || '-'}</strong></td>`;
                 html += `<td>${p['Data Pedido Recebido'] || '-'}</td>`;
