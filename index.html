@@ -801,23 +801,49 @@
             return `${dia}/${mes}/${ano}`;
         }
 
+        // Parser CSV robusto que respeita aspas e valores com vírgulas
+        function parseCSVLine(line) {
+            const result = [];
+            let current = '';
+            let insideQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    if (insideQuotes && line[i + 1] === '"') {
+                        // Escaped quote "" → add single "
+                        current += '"';
+                        i++;
+                    } else {
+                        // Toggle quote state
+                        insideQuotes = !insideQuotes;
+                    }
+                } else if (char === ',' && !insideQuotes) {
+                    // Found delimiter outside quotes
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            
+            // Add last field
+            result.push(current.trim());
+            return result;
+        }
+
         function parseCSV(csvText) {
             const lines = csvText.trim().split('\n');
             if (lines.length === 0) return [];
 
-            // Google Sheet usa separador vírgula
-            const separator = ',';
-            
-            // Parse header
-            const headers = lines[0].split(separator).map(h => h.trim());
+            // Parse header com parser robusto
+            const headers = parseCSVLine(lines[0]);
             
             console.log('📋 Headers encontrados:', headers);
             console.log('📊 TOTAL DE COLUNAS:', headers.length);
 
             // MAPEAMENTO CORRETO com índices das colunas do Google Sheet
-            // Confirmado manualmente:
-            // 0=ID, 1=PO, 2=Customer, 3=Contratos, 4=Tipo Contrato, 5=ID Client, 6=Operation, 7=KAM,
-            // 8=Data Receb, 9=Data Compl, 10=Data Envio, 11=Tem Pend?, 12=Quais Pend?, 34=Warehouse
             const colMap = {
                 po: 1,  // PO (Relacionado)
                 kam: 7,  // KAM
@@ -844,7 +870,8 @@
                 const line = lines[i].trim();
                 if (!line) continue;
 
-                const cols = line.split(separator).map(c => c.trim());
+                // Parse line com parser robusto
+                const cols = parseCSVLine(line);
                 
                 rows.push({
                     po: cols[colMap.po]?.trim() || '',
@@ -861,6 +888,10 @@
                 });
             }
 
+            console.log(`✅ Linhas parseadas: ${rows.length}`);
+            if (rows.length > 0) {
+                console.log('📝 Primeira linha:', rows[0]);
+            }
             return rows;
         }
 
