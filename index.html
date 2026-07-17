@@ -489,7 +489,7 @@
         <div class="container">
             <div class="header"></div>
 
-        <div id="loadingMsg" class="loading" data-i18n="loading">⏳ Carregando dados do CSV...</div>
+        <div id="loadingMsg" class="loading" data-i18n="loading">⏳ Carregando dados do Google Sheet...</div>
 
         <!-- CARDS PRINCIPAIS - TELA INICIAL -->
         <div id="cardsMain" class="cards" style="margin-bottom: 30px; display: none;">
@@ -935,6 +935,7 @@
             // URL do Google Sheet publicado como CSV (atualiza em tempo real)
             const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRZXJB7RTC1UVoj7r7bmyqa-YHryeGtc3hmE1DIS_WD_qDLauiBp-Ob9LVf_tNBxLvP0NzFW_F00Dns/pub?gid=0&single=true&output=csv';
 
+            console.log('🔄 Tentando carregar Google Sheet de:', csvUrl);
             const pPedidos = fetchTextoLatin1(csvUrl);
 
             // Cadastro é opcional — se falhar, segue sem nomenclatura enriquecida
@@ -952,10 +953,14 @@
                 })
                 .catch(err => {
                     console.error('❌ Erro ao carregar Google Sheet:', err);
+                    let errorMsg = err.message;
+                    if (err.message.includes('403') || err.message.includes('Forbidden')) {
+                        errorMsg = '❌ Google Sheet não está acessível. Certifique-se que está publicado como CSV público!';
+                    }
                     document.getElementById('loadingMsg').innerHTML = 
-                        `${t('errorLoad')}: ${err.message}. ${t('tryF5')}`;
-                    // Tenta novamente em 1 hora em caso de erro
-                    setTimeout(fetchAndProcessCSV, 3600000);
+                        `<strong>${errorMsg}</strong><br><small><strong>⚠️ Para resolver:</strong><br>1. Abra o Google Sheet<br>2. Clique em "Compartilhar"<br>3. Certifique-se que está "Acesso público"<br>4. Recarregue esta página (F5)</small>`;
+                    // Tenta novamente em 5 minutos em caso de erro
+                    setTimeout(fetchAndProcessCSV, 300000);
                 });
         }
 
@@ -1156,6 +1161,12 @@
             document.getElementById('cardAguardando').textContent = aguardando;
             document.getElementById('cardAnalise').textContent = analise;
             document.getElementById('cardFaturamento').textContent = faturamento;
+
+            // Novas métricas para aba Análise
+            // Soma dos dois indicadores: pedidos com SLA>0 dias + pedidos ainda sem Envio Final à SM
+            const comSLA = csvData.filter(p => p['SLA Receb→Compl'] > 0).length;
+            const semEnvioFinal = csvData.filter(p => p['Data Pedido Recebido'] && !p['Data Pedido Completo']).length;
+            const slaVendedor = comSLA + semEnvioFinal;
 
             // Aba Análise
             document.getElementById('cardTotalAnalise').textContent = total;
