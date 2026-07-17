@@ -851,7 +851,10 @@
                 dataCompl: 9,  // Data Pedido Completo
                 dataEnvio: 10,  // Data Envio Faturamento
                 pendencias: 12,  // Quais Pendências?
+                qtdade: 16,  // Qtdade
                 warehouse: 34,  // Warehouse
+                codProduto: 83,  // Código Produto
+                descProduto: 84,  // Descrição
                 customer: 2  // Customer (Relacionado)
             };
 
@@ -882,9 +885,9 @@
                     dataEnvio: normalizaData(cols[colMap.dataEnvio]?.trim() || ''),
                     pendencias: cols[colMap.pendencias]?.trim() || '',
                     warehouse: cols[colMap.warehouse]?.trim() || '',
-                    codProduto: '',
-                    descProduto: '',
-                    qtd: 0
+                    codProduto: cols[colMap.codProduto]?.trim() || '',
+                    descProduto: cols[colMap.descProduto]?.trim() || '',
+                    qtd: parseFloat((cols[colMap.qtdade]?.trim() || '0').replace(',', '.')) || 0
                 });
             }
 
